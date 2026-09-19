@@ -225,6 +225,93 @@ Generate all comparison tables, plots, and the runtime comparison report. The RE
 
 No external hardware needed. No dev board. Everything runs on a standard Linux workstation or in Docker.
 
+## Running it
+
+```bash
+pip install -r requirements.txt          # python 3.12 or 3.13, linux x86_64
+sudo apt install gcc-arm-none-eabi libnewlib-arm-none-eabi qemu-system-arm
+make help                                # every target, one line each
+```
+
+Full run, in order:
+
+```bash
+make data        # download speech commands v2 (2.4 GB) and cache the audio
+make train       # train ds-cnn, writes artifacts/ds_cnn.pt
+make export      # onnx, tflite, tensorrt engines, c headers, eval + calibration sets
+make c-engine    # build the c cli, run the operator tests
+make bench       # every runtime this machine can run -> results/profiling/*.json
+make qemu        # cortex-m4 build, flash/ram check, instruction counts
+make analysis    # tables in results/tables, figures in results/plots
+make test        # python tests
+```
+
+Nothing after `make export` needs the dataset again: every runner reads the same
+evaluation features from `artifacts/`, so all seven rows of the comparison table
+are scored on identical inputs.
+
+Without a dataset or a GPU you can still exercise the whole pipeline:
+
+```bash
+make smoke-export c-engine test qemu analysis
+```
+
+That path is what CI runs, using an untrained model and synthetic features.
+
+### What runs where
+
+| Piece | Needs |
+|-------|-------|
+| training, export, onnx runtime, c engine | cpu only |
+| tflite export and runner | tensorflow (cpu is fine) |
+| tensorrt engines and runner | nvidia gpu, driver with cuda 13 support |
+| `make qemu` | `arm-none-eabi-gcc`, `qemu-system-arm` 5.2+ (needs the mps2-an386 machine) |
+| tflite per-operator timings | `make tools`, which fetches tflite's `benchmark_model` |
+
+## Notes on the implementation
+
+Decisions that are worth knowing before reading the code, mostly places where
+reality did not match the plan.
+
+**TensorRT 11 removed implicit quantization.** `IInt8Calibrator` and the whole
+calibration-cache workflow are gone, and so are `BuilderFlag.FP16` and
+`BuilderFlag.INT8`: every network is strongly typed now, so precision comes from
+the tensor types in the ONNX file. FP16 is therefore a cast copy of the graph,
+and INT8 is a Q/DQ graph calibrated by ONNX Runtime's `quantize_static`. One
+calibration run, symmetric int8 with float biases, feeds TensorRT; the asymmetric
+uint8 variant feeds ONNX Runtime's x86 kernels, which prefer it.
+
+**The ONNX export deliberately uses the TorchScript exporter.** The dynamo
+exporter's optimizer folds batchnorm into conv before any runtime sees the graph,
+which would hide exactly the fusion decisions this project is trying to measure.
+`training=PRESERVE` keeps one node per module: conv, batchnorm, relu. Both graphs
+are exported, and `fusion_analysis.py` prints the difference, because "your
+exporter already fused it" is itself a result.
+
+**Features are normalized outside the model.** MFCC coefficient 0 spans roughly
+-630 to +60 dB while the rest sit within a few tens of dB. Quantizing that to one
+int8 tensor would spend the whole range on c0 and leave three bits for everything
+else, so per-coefficient mean/std normalization happens in preprocessing and the
+stats travel in the checkpoint. The fixed-point MFCC applies the same
+normalization on the target, as one requantization per coefficient.
+
+**MFCC parameters** are 16 kHz, 512-point FFT, 320 hop, 40 mel bands from 20 Hz
+to 4 kHz, 10 coefficients, 49 frames, Slaney mel scale, no `top_db` clipping.
+`data/speech_commands.py` is the single source of truth: training, every runtime
+and the Q15 tables in `c_engine/weights/mfcc_tables.h` all come from it.
+
+**Peak RAM is not one measurement.** The C engine reports its planner's arena
+exactly, TensorRT reports the engine's device memory, TFLite reports
+`benchmark_model`'s footprint, and ONNX Runtime has no such API so it reports the
+process RSS high-water delta, which includes the runtime itself. The comparison
+table prints the source next to the number instead of pretending they match.
+
+**QEMU timing is instruction counts, not cycles.** With `-icount shift=0` every
+instruction takes 1 ns of virtual time and the 25 MHz SysTick advances one tick
+per 40 instructions, which was calibrated against a loop of known length. That
+makes per-operator costs deterministic and reproducible, but they are not
+hardware cycles: no wait states, no flash latency, no pipeline effects.
+
 ## Key results (format)
 
 The README opens with these tables once results exist:
@@ -268,6 +355,30 @@ The README opens with these tables once results exist:
 - The real performance/accuracy/size tradeoff triangle that governs every deployment decision
 
 This is the project you explain when someone asks "what happens between `model.export()` and inference on a device."
+
+## Status
+
+Every phase is implemented. The result tables are empty because no training run
+has happened yet — they fill in from `make bench` and `make analysis`.
+
+Verified so far on a laptop (WSL, no dataset, untrained 32-channel model, so the
+numbers below say "it works", not "it is fast"):
+
+- **C engine** — 24 operator tests pass. INT8 kernels are bit-exact against the
+  Python reference in `train/quant.py`; FP32 is within 1.5e-7 of PyTorch
+  end to end.
+- **Fixed-point MFCC** — within 0.31 dB max, 0.043 dB mean of librosa.
+- **ONNX + ONNX Runtime** — outputs match PyTorch to 1.2e-7. ORT fuses 18 nodes
+  into 9 kernels, worth 2.9x; BN folding changes logits by 1.2e-7, i.e. float
+  rounding only, as predicted.
+- **Cortex-M4** — cross-compiles, links inside the budget, runs under QEMU.
+  INT8 inference takes 8.3 M instructions against 40.3 M for soft-float FP32.
+- **Memory planner** — unfused FP32 needs 236.6 kB with one buffer per tensor
+  and 31.2 kB with reuse, in two ping-pong buffers.
+
+Not yet run anywhere: training on the real dataset, the TFLite path (needs
+TensorFlow) and TensorRT (needs a Turing or newer GPU; the laptop's Maxwell card
+is unsupported by TensorRT 11).
 
 ---
 
