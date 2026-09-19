@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# dataset, checkpoints, exported models
+data/raw/
+data/cache/
+artifacts/
+
+# generated c sources and builds
+c_engine/build/
+c_engine/weights/*.h
+c_engine/test/vectors.h
+
+# tflite benchmark binary, fetched per machine
+tools/
