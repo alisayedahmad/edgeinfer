@@ -4,21 +4,6 @@
 #include "geometry.h"
 #include "mfcc.h"
 
-// which weight sets get compiled in. the cortex-m4 build drops the
-// unfused copy to stay inside 1 MB of flash
-#ifndef EI_WITH_F32
-#define EI_WITH_F32 1
-#endif
-#ifndef EI_WITH_UNFUSED
-#define EI_WITH_UNFUSED 1
-#endif
-#ifndef EI_WITH_INT8
-#define EI_WITH_INT8 1
-#endif
-#if EI_WITH_UNFUSED && !EI_WITH_F32
-#error "the unfused path needs the fp32 fc weights, set EI_WITH_F32"
-#endif
-
 #if EI_WITH_F32
 #include "weights_f32.h"
 #endif
