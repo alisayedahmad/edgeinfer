@@ -27,21 +27,25 @@ TARGETS = ["onnx", "tflite", "tensorrt", "c"]
 
 
 def feature_sets(ckpt, n_calib, synthetic, seed=0):
-    """(calibration x, test x, test y), x normalized (n, 1, 49, 10) float32.
+    """(calibration x, test x, test y, clip), x normalized (n, 1, 49, 10) float32.
 
-    synthetic swaps in random features so the whole export path runs
-    without the dataset, for ci and smoke tests.
+    clip is one raw 1 s int16 recording with its label, for the cortex-m4
+    demo. synthetic swaps in random features and a chirp so the whole export
+    path runs without the dataset, for ci and smoke tests.
     """
     rng = np.random.default_rng(seed)
     if synthetic:
         x = rng.standard_normal((n_calib + 512, 1, N_FRAMES, N_MFCC)).astype(np.float32)
-        return x[:n_calib], x[n_calib:], rng.integers(0, ckpt["n_classes"], 512)
+        t = np.arange(sc.N_SAMPLES) / sc.SR
+        chirp = np.round(0.5 * np.sin(2 * np.pi * (300 + 1200 * t) * t) * 32768)
+        return x[:n_calib], x[n_calib:], rng.integers(0, ckpt["n_classes"], 512), (chirp.astype(np.int16), 0)
     mean, std = torch.as_tensor(ckpt["feat_mean"]), torch.as_tensor(ckpt["feat_std"])
     train_audio, _ = sc.load_split("train")
     pick = np.sort(rng.choice(len(train_audio), n_calib, replace=False))
     calib = features(train_audio[pick], mean, std, "cpu").numpy()
     test_audio, test_y = sc.load_split("test")
-    return calib, features(test_audio, mean, std, "cpu").numpy(), test_y
+    clip = (test_audio[0], int(test_y[0]))
+    return calib, features(test_audio, mean, std, "cpu").numpy(), test_y, clip
 
 
 def export_onnx(model, out):
@@ -246,6 +250,15 @@ def write_mfcc_tables(out_dir=WEIGHTS):
     (out_dir / "mfcc_tables.h").write_text(c_header("MFCC_TABLES", body))
 
 
+def write_clip_header(clip, word, out_dir=WEIGHTS):
+    # one raw clip for the cortex-m4 demo, its fixed-point mfcc runs on target
+    pcm, label = clip
+    (out_dir / "clip.h").write_text(c_header("CLIP", "".join([
+        f"#define CLIP_LABEL {label}\n", f'static const char clip_word[] = "{word}";\n\n',
+        c_array("int16_t", "clip_pcm", pcm),
+    ])))
+
+
 def write_c_headers(model, ckpt, q, out_dir=WEIGHTS):
     """model.h, geometry.h and the weights_*.h headers for the c engine.
 
@@ -328,7 +341,7 @@ def main():
         return
 
     model, ckpt = load(args.ckpt)
-    calib, test_x, test_y = feature_sets(ckpt, args.calib, args.synthetic)
+    calib, test_x, test_y, clip = feature_sets(ckpt, args.calib, args.synthetic)
     ARTIFACTS.mkdir(exist_ok=True)
     np.save(ARTIFACTS / "calib_features.npy", calib)
     np.savez(ARTIFACTS / "test_features.npz", x=test_x, y=test_y)
@@ -352,6 +365,7 @@ def main():
     if "c" in args.targets:
         q = quant.quantize_model(model, torch.from_numpy(calib))
         write_c_headers(model, ckpt, q, WEIGHTS)
+        write_clip_header(clip, ckpt["words"][clip[1]], WEIGHTS)
     print(f"exported {', '.join(args.targets)} -> {ARTIFACTS}")
 
 
