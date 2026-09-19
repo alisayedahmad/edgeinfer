@@ -247,19 +247,24 @@ def write_mfcc_tables(out_dir=WEIGHTS):
 
 
 def write_c_headers(model, ckpt, q, out_dir=WEIGHTS):
-    """model.h, weights_f32.h, weights_raw.h and weights_int8.h for the c engine.
+    """model.h, geometry.h and the weights_*.h headers for the c engine.
 
-    weights_f32.h holds the bn-folded layers the fused path runs,
+    model.h is plain defines, safe to include anywhere. the rest are static
+    tables that only forward.c includes. weights_f32.h holds the bn-folded
+    layers the fused path runs,
     weights_raw.h the separate conv and bn params for the unfused path,
     weights_int8.h the quantized layers plus the mfcc -> int8 input scaling.
     """
     layers = quant.float_layers(model)
+    (out_dir / "model.h").write_text(c_header("MODEL", "".join([
+        f"#define EI_IN_H {N_FRAMES}\n#define EI_IN_W {N_MFCC}\n",
+        f"#define EI_WIDTH {model.width}\n#define EI_BLOCKS {model.blocks}\n",
+        f"#define EI_LAYERS {len(layers)}\n#define EI_CLASSES {model.n_classes}\n",
+    ])))
     geom = ", ".join("{%d, %d, %d, %d, %d, %d}" % (*f["kernel"], *f["stride"], *f["pad"]) for f in layers)
     names = ", ".join(f'"{f["name"]}"' for f in layers)
-    (out_dir / "model.h").write_text(c_header("MODEL", "".join([
-        '#include "ops.h"\n\n',
-        f"#define EI_WIDTH {model.width}\n#define EI_BLOCKS {model.blocks}\n",
-        f"#define EI_LAYERS {len(layers)}\n#define EI_CLASSES {model.n_classes}\n\n",
+    (out_dir / "geometry.h").write_text(c_header("GEOMETRY", "".join([
+        '#include "forward.h"\n\n',
         f"static const conv_params_t ei_geom[EI_LAYERS] = {{{geom}}};\n",
         f"static const char *const ei_layer_names[EI_LAYERS] = {{{names}}};\n",
     ])))
