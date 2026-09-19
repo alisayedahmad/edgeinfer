@@ -123,7 +123,11 @@ def main():
     x, _ = profile.eval_set()
     text = ("# fusion\n\n## what the exporter already folded\n\n" + exporter_table()
             + "\n## what each runtime runs\n\n" + runtime_table(records)
-            + "\n## fusion impact\n\n" + impact_table(records, x[:64]))
+            + "\n## fusion impact\n\n" + impact_table(records, x[:64])
+            + "\nfusion saves two passes over the activations per layer, so on a desktop cpu with\n"
+              "small tensors the win can fall inside run-to-run noise. the deterministic\n"
+              "evidence is the operator breakdown in runtimes.md: the batch_norm and relu rows\n"
+              "of an unfused run are exactly what fusing removes.\n")
     style.write_table("fusion", text)
     if not args.no_chart:
         chart(records)
