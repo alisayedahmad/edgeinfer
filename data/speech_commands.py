@@ -69,14 +69,20 @@ def read_wav(data):
 
 
 def prepare(root=ROOT):
-    """unpack the archive into int16 arrays under data/cache.
+    """unpack the archive into memory-mapped int16 arrays under data/cache.
 
-    writes {train,val,test}.npz with audio (n, 16000) zero-padded at the end,
-    label and path, plus noise.npy with all background noise concatenated.
-    reads the tarball in one pass, no wav files hit the disk.
+    one pass over the tarball appends every clip to a scratch file, then each
+    split is copied out of it row by row, so only one clip is ever held in
+    memory and the whole thing runs in a few hundred megabytes. writes
+    {train,val,test}.i16 with the audio zero-padded to 1 s, a matching .npz of
+    labels and paths, and noise.npy with the background recordings.
     """
-    clips, noise, lists = {}, [], {}
-    with tarfile.open(download(root), "r:gz") as tar:
+    cache = root / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    scratch = cache / "all.i16"
+    names, noise, lists = [], [], {}
+    clip = np.zeros(N_SAMPLES, dtype=np.int16)
+    with tarfile.open(download(root), "r:gz") as tar, open(scratch, "wb") as out:
         for member in tar:
             if not member.isfile():
                 continue
@@ -88,27 +94,41 @@ def prepare(root=ROOT):
             elif name.endswith(".wav") and word == "_background_noise_":
                 noise.append(read_wav(data))
             elif name.endswith(".wav") and word in WORDS:
-                clips[name] = read_wav(data)
+                x = read_wav(data)[:N_SAMPLES]
+                clip[:len(x)] = x
+                clip[len(x):] = 0
+                out.write(clip.tobytes())
+                names.append(name)
 
-    cache = root / "cache"
-    cache.mkdir(exist_ok=True)
+    everything = np.memmap(scratch, dtype=np.int16, mode="r", shape=(len(names), N_SAMPLES))
     splits = {"val": lists["validation"], "test": lists["testing"]}
-    splits["train"] = set(clips) - splits["val"] - splits["test"]
-    for split, names in splits.items():
-        names = sorted(names)
-        audio = np.zeros((len(names), N_SAMPLES), dtype=np.int16)
-        for i, name in enumerate(names):
-            x = clips[name][:N_SAMPLES]
-            audio[i, :len(x)] = x
-        label = np.array([WORDS.index(n.split("/")[0]) for n in names], dtype=np.int64)
-        np.savez(cache / f"{split}.npz", audio=audio, label=label, path=np.array(names))
-        print(f"{split}: {len(names)} clips")
+    splits["train"] = set(names) - splits["val"] - splits["test"]
+    for split, wanted in splits.items():
+        rows = [i for i, name in enumerate(names) if name in wanted]
+        audio = np.memmap(cache / f"{split}.i16", dtype=np.int16, mode="w+", shape=(len(rows), N_SAMPLES))
+        for out_row, in_row in enumerate(rows):
+            audio[out_row] = everything[in_row]
+        audio.flush()
+        del audio
+        paths = [names[i] for i in rows]
+        label = np.array([WORDS.index(p.split("/")[0]) for p in paths], dtype=np.int64)
+        np.savez(cache / f"{split}.npz", label=label, path=np.array(paths))
+        print(f"{split}: {len(rows)} clips")
+    del everything
+    try:
+        scratch.unlink()
+    except OSError:
+        print(f"could not remove {scratch}, delete it by hand")
     np.save(cache / "noise.npy", np.concatenate(noise))
 
 
 def load_split(split, root=ROOT):
-    d = np.load(root / "cache" / f"{split}.npz")
-    return d["audio"], d["label"]
+    """(audio, label) where audio is memory-mapped, so it need not fit in ram."""
+    meta = np.load(root / "cache" / f"{split}.npz")
+    label = meta["label"]
+    audio = np.memmap(root / "cache" / f"{split}.i16", dtype=np.int16, mode="r",
+                      shape=(len(label), N_SAMPLES))
+    return audio, label
 
 
 def hz_to_mel(f):
