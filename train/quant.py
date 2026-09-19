@@ -153,17 +153,18 @@ def quantize_model(model, calib_x):
     for f in float_layers(model):
         w_q, w_scale = quantize_weights(f["wf"], axis=-1 if f["kind"] == "dw" else 0)
         out_scale, out_zp = act_params(*ranges[f["name"]])
-        layers.append(dict(f, **_int8_params(f["bf"], w_q, w_scale, prev, (out_scale, out_zp), relu=True)))
+        layers.append(dict(f, **int8_params(f["bf"], w_q, w_scale, prev, (out_scale, out_zp), relu=True)))
         prev = (out_scale, out_zp)
 
     fc_w = model.fc.weight.detach().double().numpy()
     fc_b = model.fc.bias.detach().double().numpy()
     w_q, w_scale = quantize_weights(fc_w, axis=0)
-    fc = dict(name="fc", kind="fc", **_int8_params(fc_b, w_q, w_scale, prev, act_params(*ranges["fc"]), relu=False))
+    fc = dict(name="fc", kind="fc", **int8_params(fc_b, w_q, w_scale, prev, act_params(*ranges["fc"]), relu=False))
     return {"in_scale": in_scale, "in_zp": in_zp, "layers": layers, "fc": fc, "ranges": ranges}
 
 
-def _int8_params(bias, w_q, w_scale, act_in, act_out, relu):
+def int8_params(bias, w_q, w_scale, act_in, act_out, relu):
+    # int32 bias and per-channel requant for one layer, act_* are (scale, zp)
     (in_scale, in_zp), (out_scale, out_zp) = act_in, act_out
     mults = [quantize_multiplier(in_scale * s / out_scale) for s in w_scale]
     return {
