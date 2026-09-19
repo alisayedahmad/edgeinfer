@@ -131,7 +131,9 @@ def requant(acc, m0, shift):
 
 
 def quantize_tensor(x, scale, zp):
-    return np.clip(round_away(np.asarray(x) / scale) + zp, INT8_MIN, INT8_MAX).astype(np.int8)
+    # divide in float32 like the c code, round in float64 where x + 0.5 is exact
+    v = (np.asarray(x, dtype=np.float32) / np.float32(scale)).astype(np.float64)
+    return np.clip(round_away(v) + zp, INT8_MIN, INT8_MAX).astype(np.int8)
 
 
 def dequantize_tensor(q, scale, zp):
