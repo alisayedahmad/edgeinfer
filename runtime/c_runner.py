@@ -15,14 +15,11 @@ import numpy as np
 
 from runtime import profile
 
-CLI = profile.REPO / "c_engine" / "build" / "host" / "edgeinfer"
 FEATURES = profile.ARTIFACTS / "test_features.f32"
 
 
 def cli(*args):
-    if not CLI.exists():
-        raise SystemExit(f"{CLI} missing, run make -C c_engine")
-    out = subprocess.run([str(CLI), *map(str, args)], capture_output=True, text=True, check=True)
+    out = subprocess.run([str(profile.c_cli()), *map(str, args)], capture_output=True, text=True, check=True)
     return out.stdout
 
 

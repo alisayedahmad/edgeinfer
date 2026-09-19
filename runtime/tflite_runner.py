@@ -53,8 +53,9 @@ def benchmark(path, runs):
     if not BENCHMARK.exists():
         print(f"note: {BENCHMARK} missing, skipping the per-op breakdown (make tools)")
         return [], None
-    out = subprocess.run([str(BENCHMARK), f"--graph={path}", "--num_threads=1", "--enable_op_profiling=true",
-                          f"--num_runs={runs}", "--warmup_runs=20"], capture_output=True, text=True, check=True).stdout
+    args = [str(BENCHMARK), f"--graph={path}", "--num_threads=1", "--enable_op_profiling=true",
+            f"--num_runs={runs}", "--warmup_runs=20"]
+    out = subprocess.run(args, capture_output=True, text=True, check=True).stdout
 
     ops, columns = [], None
     for line in out.splitlines():

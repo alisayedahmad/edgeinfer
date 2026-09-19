@@ -13,6 +13,7 @@ peak ram is not the same measurement everywhere, so peak_ram_source says
 where the number came from and the comparison table prints it.
 """
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -52,6 +53,15 @@ def canonical_op(name, op_type=""):
     if hit:
         return LAYER_OP[hit[1] if hit[1] in LAYER_OP else re.sub(r"\d+$", "", hit[1])]
     return base or "other"
+
+
+def c_cli():
+    # gcc appends .exe on windows, and both builds can share one tree
+    for name in ("edgeinfer.exe", "edgeinfer") if os.name == "nt" else ("edgeinfer", "edgeinfer.exe"):
+        path = REPO / "c_engine" / "build" / "host" / name
+        if path.exists():
+            return path
+    raise SystemExit("c engine cli missing, run make -C c_engine")
 
 
 def eval_set():

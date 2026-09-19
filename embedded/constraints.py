@@ -26,7 +26,8 @@ TICK_INSTRUCTIONS = 40
 
 def sections(elf):
     out = subprocess.run(["arm-none-eabi-size", "-A", str(elf)], capture_output=True, text=True, check=True)
-    return {m[1]: int(m[2]) for m in (re.match(r"(\.\S+)\s+(\d+)\s+\d+", line) for line in out.stdout.splitlines()) if m}
+    matches = (re.match(r"(\.\S+)\s+(\d+)\s+\d+", line) for line in out.stdout.splitlines())
+    return {m[1]: int(m[2]) for m in matches if m}
 
 
 def arenas():
@@ -83,7 +84,8 @@ def main():
           f"  (arena {sec.get('.bss', 0) / 1024:.1f} kb bss incl., stack {STACK_BYTES // 1024} kb)")
     for mode, plans in report["arena_bytes"].items():
         fits = "fits" if plans["greedy"] + STACK_BYTES <= RAM_LIMIT else "OVER"
-        print(f"arena {mode:13s} greedy {plans['greedy'] / 1024:8.1f} kb  naive {plans['naive'] / 1024:8.1f} kb  {fits}")
+        print(f"arena {mode:13s} greedy {plans['greedy'] / 1024:8.1f} kb  "
+              f"naive {plans['naive'] / 1024:8.1f} kb  {fits}")
     for run in report.get("qemu", []):
         print(f"qemu  {run['mode']:5s} pred {run['pred']} label {run['label']}  "
               f"mfcc {run['mfcc_instructions'] / 1e6:.2f} m instructions  "
