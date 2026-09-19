@@ -2,7 +2,9 @@
 
 // direct convolution, no im2col. for each output pixel and channel, walk
 // the kernel window and dot the input pixel's channels against the weights.
-// padded taps are skipped, which is the same as multiplying by zero
+// padded taps are skipped, which is the same as multiplying by zero.
+// the dot product runs over cin, so the first layer (cin = 1) gets no
+// vectorization and costs far more per mac than the pointwise convs
 void conv2d_f32(const tensor_t *in, tensor_t *out, const float *w, const float *b, const conv_params_t *p)
 {
     const float *x = in->data;
