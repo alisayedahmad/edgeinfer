@@ -48,6 +48,22 @@ def feature_sets(ckpt, n_calib, synthetic, seed=0):
     return calib, features(test_audio, mean, std, "cpu").numpy(), test_y, clip
 
 
+def random_checkpoint(path, width=32, blocks=2, seed=0):
+    """untrained checkpoint, so ci and smoke tests can run the whole export.
+
+    small on purpose: the point is exercising the path, not accuracy.
+    """
+    from train.ds_cnn import DSCNN
+
+    torch.manual_seed(seed)
+    model = DSCNN(len(sc.WORDS), width, blocks)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"model": model.state_dict(), "n_classes": len(sc.WORDS), "width": width, "blocks": blocks,
+                "words": sc.WORDS, "feat_mean": np.zeros(N_MFCC, np.float32),
+                "feat_std": np.ones(N_MFCC, np.float32)}, path)
+    return path
+
+
 def export_onnx(model, out):
     """unfused graph: conv, batchnorm and relu stay separate nodes.
 
@@ -340,7 +356,10 @@ def main():
     p.add_argument("--targets", nargs="+", default=TARGETS, choices=TARGETS + ["mfcc"])
     p.add_argument("--calib", type=int, default=1000, help="calibration clips shared by every int8 path")
     p.add_argument("--synthetic", action="store_true", help="random features instead of the dataset")
+    p.add_argument("--random-model", action="store_true", help="untrained checkpoint, for ci and smoke tests")
     args = p.parse_args()
+    if args.random_model and not args.ckpt.exists():
+        random_checkpoint(args.ckpt)
 
     if "mfcc" in args.targets or "c" in args.targets:
         write_mfcc_tables()
