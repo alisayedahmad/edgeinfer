@@ -1,0 +1,55 @@
+# exercises everything that runs without a gpu or the dataset: the exports,
+# the c engine and its operator tests, the cortex-m4 build under qemu, and
+# the analysis scripts. tensorflow and tensorrt are left out on purpose,
+# they are gigabytes and neither runs on a github runner
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: install toolchains
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-arm-none-eabi libnewlib-arm-none-eabi qemu-system-arm
+
+      - name: install python deps
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install numpy onnx onnxscript onnxruntime librosa matplotlib pytest
+
+      - name: export an untrained model
+        run: make smoke-export
+
+      - name: build the c engine and run operator tests
+        run: make c-engine
+
+      - name: python tests
+        run: make test
+
+      - name: cortex-m4 build under qemu
+        run: make qemu
+
+      - name: benchmark the runtimes that run here
+        run: make bench-onnx bench-c
+
+      - name: analysis
+        run: make analysis
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: results/
