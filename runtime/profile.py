@@ -40,13 +40,18 @@ TYPE_OP = {
 def canonical_op(name, op_type=""):
     """map a runtime's node name and op type onto our operator categories.
 
-    names keep the layer they came from (conv1, dw1, pw1, pool, fc) through
-    onnx, tflite and tensorrt, so they win over the op type when present.
+    the op type decides whenever it is unambiguous. convolutions are not: only
+    the layer name says whether a conv is the first layer, a depthwise or a
+    pointwise, and that name survives into onnx, tflite and tensorrt.
     """
-    hit = re.search(r"(conv1|dw\d+|pw\d+|pool|fc)\b", name or "")
+    base = TYPE_OP.get((op_type or "").lower().removeprefix("tfl."))
+    if base not in (None, "conv2d"):
+        return base
+    # the lookaround keeps "fc" out of "mfcc" and matches ort's dw1_token_4
+    hit = re.search(r"(?<![A-Za-z0-9_])(conv1|dw\d+|pw\d+|pool|fc)(?![0-9])", name or "")
     if hit:
         return LAYER_OP[hit[1] if hit[1] in LAYER_OP else re.sub(r"\d+$", "", hit[1])]
-    return TYPE_OP.get((op_type or "").lower().removeprefix("tfl."), "other")
+    return base or "other"
 
 
 def eval_set():
