@@ -241,6 +241,26 @@ void ei_set_mfcc(ei_model_t *m, const int32_t *mfcc_q16)
 #endif
 }
 
+// weight bytes a mode ships: what lands in flash, not the host binary size
+int32_t ei_weight_bytes(ei_mode_t mode)
+{
+    int32_t total = 0;
+    for (int l = 0; l < EI_LAYERS; l++) {
+        const conv_params_t *g = &ei_geom[l];
+        // depthwise keeps one tap per channel, pointwise mixes all of them
+        int cin = l == 0 ? 1 : (g->kh == 1 && g->kw == 1) ? EI_WIDTH : 1;
+        int weights = g->kh * g->kw * cin * EI_WIDTH;
+        if (mode == EI_INT8)
+            total += weights + EI_WIDTH * (int)(sizeof(int32_t) * 2 + 1);
+        else
+            total += (weights + EI_WIDTH * (mode == EI_UNFUSED ? 2 : 1)) * (int)sizeof(float);
+    }
+    int fc = EI_CLASSES * EI_WIDTH;
+    total += mode == EI_INT8 ? fc + EI_CLASSES * (int)(sizeof(int32_t) * 2 + 1)
+                             : (fc + EI_CLASSES) * (int)sizeof(float);
+    return total;
+}
+
 void ei_get_logits(const ei_model_t *m, float *out)
 {
     const tensor_t *y = &m->tensors[m->n_steps];

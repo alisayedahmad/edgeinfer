@@ -76,6 +76,9 @@ void ei_set_mfcc(ei_model_t *m, const int32_t *mfcc_q16);
 // float logits out, dequantized in int8 mode
 void ei_get_logits(const ei_model_t *m, float *out);
 
+// weight bytes a mode ships, the flash figure for the target
+int32_t ei_weight_bytes(ei_mode_t mode);
+
 const char *ei_layer_name(int layer);
 const char *ei_op_name(ei_op_t op);
 

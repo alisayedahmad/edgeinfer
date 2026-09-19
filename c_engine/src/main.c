@@ -136,8 +136,10 @@ static void cmd_bench(ei_model_t *m, const char *mode, int runs)
 
 static void cmd_plan(const ei_model_t *m, const char *mode, int naive)
 {
-    printf("{\"mode\": \"%s\", \"planner\": \"%s\", \"arena_bytes\": %d, \"n_buffers\": %d, \"n_steps\": %d,\n",
-           mode, naive ? "naive" : "greedy", (int)m->plan.arena_bytes, m->plan.n_buffers, m->n_steps);
+    printf("{\"mode\": \"%s\", \"planner\": \"%s\", \"arena_bytes\": %d, \"weight_bytes\": %d, "
+           "\"n_buffers\": %d, \"n_steps\": %d,\n",
+           mode, naive ? "naive" : "greedy", (int)m->plan.arena_bytes, (int)ei_weight_bytes(m->mode),
+           m->plan.n_buffers, m->n_steps);
     printf(" \"tensors\": [\n");
     char name[32];
     for (int t = 0; t < m->plan.n_tensors; t++) {
