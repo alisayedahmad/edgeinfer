@@ -408,24 +408,21 @@ This is the project you explain when someone asks "what happens between `model.e
 
 ## Status
 
-Every phase is implemented. The result tables are empty because no training run
-has happened yet — they fill in from `make bench` and `make analysis`.
+All seven phases are implemented, and the results above come from a trained model
+scored on the full test set, not a smoke run.
 
-Verified so far on a laptop (WSL, no dataset, untrained 32-channel model, so the
-numbers below say "it works", not "it is fast"):
-
+- **Training** — 30 epochs on CPU, 94.71% validation, 93.98% test across 35 words.
+  The log is in `results/train.log`.
 - **C engine** — 24 operator tests pass. INT8 kernels are bit-exact against the
-  Python reference in `train/quant.py`; FP32 is within 1.5e-7 of PyTorch
-  end to end.
-- **Fixed-point MFCC** — within 0.31 dB max, 0.043 dB mean of librosa.
-- **ONNX + ONNX Runtime** — outputs match PyTorch to 1.2e-7. ORT fuses 18 nodes
-  into 9 kernels, worth 2.9x; BN folding changes logits by 1.2e-7, i.e. float
-  rounding only, as predicted.
-- **Cortex-M4** — cross-compiles, links inside the budget, runs under QEMU.
-  INT8 inference takes 8.3 M instructions against 40.3 M for soft-float FP32.
-- **Memory planner** — unfused FP32 needs 236.6 kB with one buffer per tensor
-  and 31.2 kB with reuse, in two ping-pong buffers.
+  Python reference in `train/quant.py`, FP32 is within 1.5e-7 of PyTorch, and all
+  three modes reproduce PyTorch's accuracy on the full test set.
+- **ONNX Runtime** — matches PyTorch to 1e-7 in FP32. Its INT8 model is genuinely
+  quantized, not silently float: logits move by up to 2.7 and 93 of 11,005
+  predictions flip.
+- **Cortex-M4** — cross-compiles, links inside the budget, runs under QEMU and
+  classifies a real test clip correctly in both INT8 and soft-float FP32.
+- **Fixed-point MFCC** — 0.017 dB mean error against librosa on real recordings.
 
-Not yet run anywhere: training on the real dataset, the TFLite path (needs
-TensorFlow) and TensorRT (needs a Turing or newer GPU; the laptop's Maxwell card
-is unsupported by TensorRT 11).
+Not run here: TFLite, which needs TensorFlow, and TensorRT, which needs a Turing
+or newer GPU. Both paths are written and wired into `make bench`, which picks up
+whichever runtimes a machine can actually run.
