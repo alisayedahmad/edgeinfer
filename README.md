@@ -440,6 +440,32 @@ hardware cycles: no wait states, no flash latency, no pipeline effects.
 
 This is the project you explain when someone asks "what happens between `model.export()` and inference on a device."
 
+## References
+
+The model and the dataset both come from the keyword spotting literature, and
+the int8 arithmetic follows the scheme every mobile runtime uses.
+
+- P. Warden, *Speech Commands: A Dataset for Limited-Vocabulary Speech
+  Recognition*, [arXiv:1804.03209](https://arxiv.org/abs/1804.03209) (2018).
+  Released under CC-BY 4.0. Not redistributed here — `make data` downloads it.
+- Y. Zhang, N. Suda, L. Lai, V. Chandra, *Hello Edge: Keyword Spotting on
+  Microcontrollers*, [arXiv:1711.07128](https://arxiv.org/abs/1711.07128) (2017).
+  The DS-CNN architecture, also published in the
+  [ARM ML zoo](https://github.com/ARM-software/ML-zoo).
+- B. Jacob et al., *Quantization and Training of Neural Networks for Efficient
+  Integer-Arithmetic-Only Inference*,
+  [arXiv:1712.05877](https://arxiv.org/abs/1712.05877) (2017). The int8 scheme
+  the C engine implements by hand: per-channel symmetric weights, asymmetric
+  activations, and a fixed-point multiplier per output channel.
+
+The MFCC reference implementation is checked against
+[librosa](https://librosa.org/), and the TFLite per-operator numbers come from
+TensorFlow Lite's own `benchmark_model`.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
+
 ## Status
 
 All seven phases are implemented, and the results above come from a trained model
