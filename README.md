@@ -117,7 +117,7 @@ Speech Commands dataset (35 keywords)
 
 **TFLite** — the mobile/edge standard. Flatbuffer format, built-in INT8 with representative dataset calibration. Interesting because its quantization pipeline is the most mature and the operator coverage is the most restrictive.
 
-**TensorRT** — GPU (runs on the RTX A2000). The only runtime here that does automatic fusion aggressively. FP16 by default, INT8 with calibration cache. This is the ceiling for inference speed on available hardware.
+**TensorRT** — GPU, and the only runtime here that fuses aggressively on its own. Implemented and wired into the benchmark, but not measured: TensorRT 11 needs a Turing or newer card and the machine this ran on has a Maxwell one. Its INT8 story also changed under it — implicit quantization and the calibration cache are gone, so precision now comes from the tensor types in the ONNX file.
 
 **Custom C engine** — no framework, no runtime, no graph. You write the forward pass operator by operator in C, manage memory yourself, implement quantization by hand. This is the floor for dependencies and the ceiling for understanding what's actually happening.
 
@@ -255,57 +255,91 @@ edgeinfer/
 └── requirements.txt
 ```
 
-## Development plan
+## How it was built
 
 ### Phase 1 — model and baselines
 
-Train DS-CNN on Speech Commands to ~95% accuracy. Export to ONNX. Verify inference matches between PyTorch and ONNX Runtime. Set up the profiling harness so every operator is timed individually.
+Trained DS-CNN on Speech Commands v2: 30 epochs on a laptop CPU, 93.98% on the
+test set. Exported to ONNX, confirmed ONNX Runtime reproduces PyTorch to 1e-7,
+and built the profiling harness so every operator is timed individually.
 
-**What you learn**: ONNX export mechanics, operator naming conventions, how PyTorch ops map to ONNX ops (some don't map 1:1 and you'll hit that).
+**What you learn**: ONNX export mechanics, operator naming conventions, how
+PyTorch ops map to ONNX ops (some don't map 1:1 and you'll hit that — the dynamo
+exporter folds batchnorm before any runtime sees the graph).
 
 ### Phase 2 — runtimes
 
-TFLite conversion from ONNX (via tf). TensorRT engine build from ONNX. Get all three Python runtimes producing identical predictions on the same input.
+TFLite conversion from ONNX through onnx2tf, TensorRT engines from the same
+graph. Both are written and wired into `make bench`; neither ran on this machine,
+for lack of TensorFlow and of a recent enough GPU.
 
-**What you learn**: the conversion quirks of each runtime (TFLite's quantization-aware restrictions, TensorRT's layer fusion log, operator support gaps).
+**What you learn**: the conversion quirks of each runtime (TFLite's
+quantization-aware restrictions, TensorRT's layer fusion log, operator support
+gaps, and APIs that disappear between major versions).
 
 ### Phase 3 — C engine
 
-Write the forward pass in C. Start with FP32, operator by operator. Test each operator against PyTorch output. Wire them into a full forward pass. Verify end-to-end predictions match.
+Wrote the forward pass in C, operator by operator, FP32 first. Every operator is
+tested against PyTorch output, and the assembled pass reproduces PyTorch's
+accuracy across the whole test set.
 
-**What you learn**: what a convolution actually does when you can't call `torch.nn.Conv2d`. How depthwise separable convs work at the memory layout level. What batch normalization is when you fold it into weights.
+**What you learn**: what a convolution actually does when you can't call
+`torch.nn.Conv2d`. How depthwise separable convs work at the memory layout level.
+What batch normalization is when you fold it into weights.
 
 ### Phase 4 — quantization
 
-INT8 quantization for all four paths. ONNX Runtime's quantization API, TFLite's representative dataset calibration, TensorRT's INT8 calibration cache, and your own manual quantization in C.
+INT8 for the paths that run here: ONNX Runtime's `quantize_static`, and manual
+quantization in C that is bit-exact against a Python reference. The same
+calibration feeds the Q/DQ graph TensorRT would consume.
 
-**What you learn**: per-channel vs per-tensor quantization, calibration strategies, where quantization error accumulates and why some layers are more sensitive.
+**What you learn**: per-channel vs per-tensor quantization, calibration
+strategies, where quantization error accumulates (1.9% of range at the first
+layer, 8.8% by the last) and why the argmax survives it anyway.
 
 ### Phase 5 — fusion and memory
 
-Implement Conv+BN+ReLU fusion in the C engine. Extract TensorRT's fusion decisions. Build the memory liveness analyzer and greedy allocator. Generate the memory timeline visualizations.
+Conv+BN+ReLU fusion in the C engine, worth 2.1x. A liveness analyzer and greedy
+allocator that cut the FP32 arena from 758 KB to 168 KB, with the timeline plots
+to show which buffer backs which tensor.
 
-**What you learn**: why BN folding is mathematically exact (not an approximation), how liveness analysis works on a dataflow graph, how runtime memory planners trade peak RAM for allocation complexity.
+**What you learn**: why BN folding is mathematically exact (not an
+approximation), how liveness analysis works on a dataflow graph, how runtime
+memory planners trade peak RAM for allocation complexity.
 
 ### Phase 6 — embedded
 
-Cross-compile for ARM Cortex-M4. Write the fixed-point MFCC. Run under QEMU. Validate against the Python pipeline.
+Cross-compiled for Cortex-M4, wrote the fixed-point MFCC, ran it under QEMU:
+738.7 KB of flash, 184.2 KB of RAM, and the right answer on a real clip.
 
-**What you learn**: cross-compilation toolchain, fixed-point arithmetic (Q15 format, overflow handling), what "no FPU" means in practice, linker scripts and memory regions.
+**What you learn**: cross-compilation toolchain, fixed-point arithmetic (Q15
+format, overflow handling), what "no FPU" means in practice (8.3x), linker
+scripts and memory regions.
 
 ### Phase 7 — analysis and writeup
 
-Generate all comparison tables, plots, and the runtime comparison report. The README opens with results, not architecture.
+Generated the comparison tables and figures in `results/`. The README opens with
+them, not with architecture.
 
 ## Hardware requirements
 
-- **GPU**: any CUDA-capable GPU for TensorRT (developed on RTX A2000 4GB). Not needed for the other three runtimes.
-- **RAM**: 8GB+ (32GB available, but the model is tiny — RAM is not the bottleneck)
-- **Disk**: ~5GB (Speech Commands dataset + all runtime artifacts)
-- **Cross-compiler**: `arm-none-eabi-gcc` (installable via apt)
-- **QEMU**: `qemu-system-arm` for Cortex-M4 emulation
+Everything except TensorRT runs on a CPU. The results above came off a four-core
+i5-8250U laptop, which is slow but sufficient: 5.5 minutes per training epoch,
+and the whole benchmark pass takes minutes.
 
-No external hardware needed. No dev board. Everything runs on a standard Linux workstation or in Docker.
+- **CPU**: any x86_64. Training is the only slow part — about 2.5 hours for 30
+  epochs on four cores, minutes on a GPU.
+- **GPU**: only for TensorRT, and it must be Turing or newer, since TensorRT 11
+  dropped Maxwell and Pascal.
+- **RAM**: 4GB is enough. The audio caches are memory-mapped, so the dataset
+  never has to fit in memory.
+- **Disk**: ~6GB — 2.4GB for the archive and 3.4GB for the caches.
+- **Cross-compiler**: `arm-none-eabi-gcc`, from apt or from ARM's prebuilt
+  tarball if you have no root on the machine.
+- **QEMU**: `qemu-system-arm` 5.2 or newer, for the `mps2-an386` Cortex-M4 machine.
+
+No external hardware, no dev board. The Makefile assumes a POSIX shell: Linux,
+or WSL if you are on Windows.
 
 ## Running it
 
