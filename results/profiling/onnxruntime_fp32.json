@@ -1,0 +1,111 @@
+{
+  "runtime": "onnxruntime",
+  "precision": "fp32",
+  "accuracy": 0.9397546569741027,
+  "latency_ms": {
+    "p50": 1.627000001462875,
+    "p90": 2.3977000018930994,
+    "p99": 4.392099999677157,
+    "mean": 1.7100994997599628
+  },
+  "model_size_kb": 568.3447265625,
+  "peak_ram_kb": 0,
+  "peak_ram_source": "process rss high-water delta",
+  "ops": [
+    {
+      "name": "/features/conv1/conv1.2/Relu_output_0_nchwc",
+      "op": "conv2d",
+      "ms": 0.15532,
+      "bytes": 88000
+    },
+    {
+      "name": "/features/dw1/dw1.2/Relu_output_0_nchwc",
+      "op": "depthwise_conv",
+      "ms": 0.13674,
+      "bytes": 88000
+    },
+    {
+      "name": "/features/pw1/pw1.2/Relu_output_0_nchwc",
+      "op": "pointwise_conv",
+      "ms": 0.26898,
+      "bytes": 88000
+    },
+    {
+      "name": "/features/dw2/dw2.2/Relu_output_0_nchwc",
+      "op": "depthwise_conv",
+      "ms": 0.10465999999999999,
+      "bytes": 88000
+    },
+    {
+      "name": "/features/pw2/pw2.2/Relu_output_0_nchwc",
+      "op": "pointwise_conv",
+      "ms": 0.2645799999999999,
+      "bytes": 88000
+    },
+    {
+      "name": "/features/dw3/dw3.2/Relu_output_0_nchwc",
+      "op": "depthwise_conv",
+      "ms": 0.10571999999999997,
+      "bytes": 88000
+    },
+    {
+      "name": "/features/pw3/pw3.2/Relu_output_0_nchwc",
+      "op": "pointwise_conv",
+      "ms": 0.27572000000000013,
+      "bytes": 88000
+    },
+    {
+      "name": "/features/dw4/dw4.2/Relu_output_0_nchwc",
+      "op": "depthwise_conv",
+      "ms": 0.11018000000000003,
+      "bytes": 88000
+    },
+    {
+      "name": "/features/pw4/pw4.2/Relu_output_0_nchwc",
+      "op": "pointwise_conv",
+      "ms": 0.27071999999999996,
+      "bytes": 88000
+    },
+    {
+      "name": "ReorderOutput",
+      "op": "other",
+      "ms": 0.04364,
+      "bytes": 86000
+    },
+    {
+      "name": "pool",
+      "op": "pool",
+      "ms": 0.04287999999999998,
+      "bytes": 688
+    },
+    {
+      "name": "flatten",
+      "op": "other",
+      "ms": 0.020520000000000004,
+      "bytes": 688
+    },
+    {
+      "name": "fc",
+      "op": "dense",
+      "ms": 0.03719999999999999,
+      "bytes": 140
+    }
+  ],
+  "fused": [
+    "/features/conv1/conv1.2/Relu_output_0_nchwc",
+    "/features/dw1/dw1.2/Relu_output_0_nchwc",
+    "/features/pw1/pw1.2/Relu_output_0_nchwc",
+    "/features/dw2/dw2.2/Relu_output_0_nchwc",
+    "/features/pw2/pw2.2/Relu_output_0_nchwc",
+    "/features/dw3/dw3.2/Relu_output_0_nchwc",
+    "/features/pw3/pw3.2/Relu_output_0_nchwc",
+    "/features/dw4/dw4.2/Relu_output_0_nchwc",
+    "/features/pw4/pw4.2/Relu_output_0_nchwc",
+    "ReorderOutput",
+    "pool",
+    "flatten",
+    "fc"
+  ],
+  "nodes_before": 30,
+  "nodes_after": 13
+}

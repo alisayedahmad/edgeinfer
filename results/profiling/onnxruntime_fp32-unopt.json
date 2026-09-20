@@ -1,0 +1,230 @@
+{
+  "runtime": "onnxruntime",
+  "precision": "fp32-unopt",
+  "accuracy": 0.9397546569741027,
+  "latency_ms": {
+    "p50": 2.6840999998967163,
+    "p90": 3.8002000001142733,
+    "p99": 4.705100000137463,
+    "mean": 2.939763500198751
+  },
+  "model_size_kb": 568.3447265625,
+  "peak_ram_kb": 0,
+  "peak_ram_source": "process rss high-water delta",
+  "ops": [
+    {
+      "name": "conv1",
+      "op": "conv2d",
+      "ms": 0.1036,
+      "bytes": 86000
+    },
+    {
+      "name": "conv1_bn",
+      "op": "batch_norm",
+      "ms": 0.056559999999999985,
+      "bytes": 86000
+    },
+    {
+      "name": "conv1_relu",
+      "op": "relu",
+      "ms": 0.026559999999999997,
+      "bytes": 86000
+    },
+    {
+      "name": "dw1",
+      "op": "depthwise_conv",
+      "ms": 0.3882799999999999,
+      "bytes": 86000
+    },
+    {
+      "name": "dw1_bn",
+      "op": "batch_norm",
+      "ms": 0.050839999999999996,
+      "bytes": 86000
+    },
+    {
+      "name": "dw1_relu",
+      "op": "relu",
+      "ms": 0.025759999999999984,
+      "bytes": 86000
+    },
+    {
+      "name": "pw1",
+      "op": "pointwise_conv",
+      "ms": 0.22481999999999996,
+      "bytes": 86000
+    },
+    {
+      "name": "pw1_bn",
+      "op": "batch_norm",
+      "ms": 0.049680000000000016,
+      "bytes": 86000
+    },
+    {
+      "name": "pw1_relu",
+      "op": "relu",
+      "ms": 0.025539999999999986,
+      "bytes": 86000
+    },
+    {
+      "name": "dw2",
+      "op": "depthwise_conv",
+      "ms": 0.3959999999999998,
+      "bytes": 86000
+    },
+    {
+      "name": "dw2_bn",
+      "op": "batch_norm",
+      "ms": 0.054000000000000006,
+      "bytes": 86000
+    },
+    {
+      "name": "dw2_relu",
+      "op": "relu",
+      "ms": 0.025139999999999982,
+      "bytes": 86000
+    },
+    {
+      "name": "pw2",
+      "op": "pointwise_conv",
+      "ms": 0.22785999999999992,
+      "bytes": 86000
+    },
+    {
+      "name": "pw2_bn",
+      "op": "batch_norm",
+      "ms": 0.049400000000000006,
+      "bytes": 86000
+    },
+    {
+      "name": "pw2_relu",
+      "op": "relu",
+      "ms": 0.026699999999999984,
+      "bytes": 86000
+    },
+    {
+      "name": "dw3",
+      "op": "depthwise_conv",
+      "ms": 0.40197999999999984,
+      "bytes": 86000
+    },
+    {
+      "name": "dw3_bn",
+      "op": "batch_norm",
+      "ms": 0.05646000000000001,
+      "bytes": 86000
+    },
+    {
+      "name": "dw3_relu",
+      "op": "relu",
+      "ms": 0.02707999999999998,
+      "bytes": 86000
+    },
+    {
+      "name": "pw3",
+      "op": "pointwise_conv",
+      "ms": 0.21237999999999999,
+      "bytes": 86000
+    },
+    {
+      "name": "pw3_bn",
+      "op": "batch_norm",
+      "ms": 0.0492,
+      "bytes": 86000
+    },
+    {
+      "name": "pw3_relu",
+      "op": "relu",
+      "ms": 0.02635999999999998,
+      "bytes": 86000
+    },
+    {
+      "name": "dw4",
+      "op": "depthwise_conv",
+      "ms": 0.38533999999999996,
+      "bytes": 86000
+    },
+    {
+      "name": "dw4_bn",
+      "op": "batch_norm",
+      "ms": 0.045040000000000004,
+      "bytes": 86000
+    },
+    {
+      "name": "dw4_relu",
+      "op": "relu",
+      "ms": 0.02367999999999999,
+      "bytes": 86000
+    },
+    {
+      "name": "pw4",
+      "op": "pointwise_conv",
+      "ms": 0.22498,
+      "bytes": 86000
+    },
+    {
+      "name": "pw4_bn",
+      "op": "batch_norm",
+      "ms": 0.047580000000000004,
+      "bytes": 86000
+    },
+    {
+      "name": "pw4_relu",
+      "op": "relu",
+      "ms": 0.025499999999999988,
+      "bytes": 86000
+    },
+    {
+      "name": "pool",
+      "op": "pool",
+      "ms": 0.030400000000000003,
+      "bytes": 688
+    },
+    {
+      "name": "flatten",
+      "op": "other",
+      "ms": 0.01392,
+      "bytes": 688
+    },
+    {
+      "name": "fc",
+      "op": "dense",
+      "ms": 0.026420000000000003,
+      "bytes": 140
+    }
+  ],
+  "fused": [
+    "conv1",
+    "conv1_bn",
+    "conv1_relu",
+    "dw1",
+    "dw1_bn",
+    "dw1_relu",
+    "pw1",
+    "pw1_bn",
+    "pw1_relu",
+    "dw2",
+    "dw2_bn",
+    "dw2_relu",
+    "pw2",
+    "pw2_bn",
+    "pw2_relu",
+    "dw3",
+    "dw3_bn",
+    "dw3_relu",
+    "pw3",
+    "pw3_bn",
+    "pw3_relu",
+    "dw4",
+    "dw4_bn",
+    "dw4_relu",
+    "pw4",
+    "pw4_bn",
+    "pw4_relu",
+    "pool",
+    "flatten",
+    "fc"
+  ],
+  "nodes_before": 30,
+  "nodes_after": 30
+}

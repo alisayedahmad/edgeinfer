@@ -4,6 +4,88 @@ Cross-runtime ML inference benchmark. Takes one model (DS-CNN keyword spotter), 
 
 The point isn't "which runtime is fastest" as a headline number. It's understanding *why*: which operators fuse, where quantization helps vs hurts, how each runtime plans memory, and what happens when you strip away the runtime entirely and do it in raw C under embedded constraints.
 
+## Results
+
+DS-CNN, 172 channels, 140,559 parameters, trained 30 epochs on Speech Commands v2
+(35 words). Every row is scored on the same 11,005-clip test set with the same
+features, batch 1, single threaded, on an i5-8250U laptop.
+
+| Runtime | Accuracy (%) | Latency p50 (ms) | Model size (KB) | Peak RAM (KB) | Kernels run |
+|---------|-------------|-------------------|-----------------|---------------|-------------|
+| PyTorch (reference) | 93.98 | 4.72 | 549 | — | — |
+| ONNX Runtime FP32 | 93.98 | 1.63 | 568 | — | 13 |
+| ONNX Runtime FP32, optimizations off | 93.98 | 2.68 | 568 | — | 30 |
+| ONNX Runtime INT8 | 93.98 | 0.46 | 182 | — | 16 |
+| C engine FP32 | 93.98 | 19.37 | 543 | 168 | 11 |
+| C engine FP32, unfused | 93.98 | 40.78 | 549 | 168 | 29 |
+| C engine INT8 | 94.00 | 29.08 | 148 | 42 | 11 |
+| TFLite | not run | | | | no TensorFlow on this machine |
+| TensorRT FP16 / INT8 | not run | | | | GPU is Maxwell, TensorRT 11 needs Turing or newer |
+
+Peak RAM is the C engine's own planner arena, which is exact. ONNX Runtime
+exposes no equivalent figure; `results/tables/memory.md` says how each runtime's
+number was obtained.
+
+**On the Cortex-M4 target** (QEMU mps2-an386, instruction counts under `-icount`,
+both weight sets compiled in):
+
+| | INT8 | FP32, soft float |
+|---|---|---|
+| Inference | 132.8 M instructions | 1098.1 M instructions |
+| Fixed-point MFCC | 10.2 M instructions | 10.2 M instructions |
+| Arena, planner vs naive | 42.0 vs 189.6 KB | 168.0 vs 758.6 KB |
+| Prediction on a real test clip | correct | correct |
+
+Flash 738.7 KB of 1024 KB, RAM 184.2 KB of 256 KB.
+
+### What the numbers say
+
+**Fusion pays for itself, and it is free.** Folding BN into the convolution and
+clamping ReLU on the output write is worth 2.1x in the C engine (40.8 -> 19.4 ms)
+and 1.65x in ONNX Runtime (2.68 -> 1.63 ms). The unfused ONNX Runtime profile
+shows why: batch norm is 13.8% of the time and ReLU another 7.0%, and both
+disappear entirely. Logits move by 8.3e-6 (C) and 2.6e-6 (ORT), i.e. float
+rounding from a different summation order — the algebra is exact, as expected.
+
+**Whether INT8 is faster depends entirely on the machine.** On the Cortex-M4 with
+no FPU it is 8.3x cheaper than soft-float FP32, which is the whole reason
+quantization exists for microcontrollers. On x86, ONNX Runtime's INT8 kernels are
+3.5x faster than its FP32 — but the C engine's INT8 is *slower* than its own FP32
+(29.1 vs 19.4 ms), because straightforward integer code with a requantization per
+output loses to float that the compiler auto-vectorizes with AVX2. INT8 is a
+memory and energy win first; the speed depends on having kernels that exploit it.
+
+**Quantization cost essentially no accuracy.** The C engine's INT8 path scores
+94.00% against 93.98% for FP32, and ONNX Runtime's INT8 flips 93 of 11,005
+predictions while getting exactly as many right. Per-layer error does accumulate
+— from 1.9% of the layer's range at conv1 to 8.8% at pw4 — but the argmax
+survives it.
+
+**The memory planner is what makes FP32 fit a microcontroller.** One buffer per
+tensor needs 758.6 KB, which does not fit in 256 KB of RAM. Liveness analysis plus
+greedy reuse brings that to 168 KB in two ping-pong buffers. Run it unfused and
+the naive figure is 2.27 MB, 13.5x the planned one.
+
+**Time concentrates in the pointwise convolutions**: 86% of the C engine's FP32
+time and 59% of ONNX Runtime's, which matches their share of the multiply-adds.
+The exception is the first layer, 11% of C engine time for 5% of the MACs — its
+dot product runs over a single input channel, so nothing vectorizes.
+
+**Fixed-point MFCC tracks librosa to 0.017 dB on average** over real clips, with a
+1.85 dB worst case in near-silent frames, where the Q15 FFT's rounding noise is
+comparable to the signal itself.
+
+![operator time share](results/plots/op_time_share.png)
+![buffer lifetimes](results/plots/memory_timeline_fp32-unfused.png)
+![int8 error per layer](results/plots/quant_error.png)
+
+More in `results/tables/`: the full per-operator breakdown, fusion decisions per
+runtime, memory plans and the MFCC error per coefficient.
+
+Latency is measured on a throttling laptop CPU: p50 over 200-300 runs, and the
+same binary can vary by up to 2x between runs when the machine is hot. The
+relative comparisons hold; the absolute milliseconds are specific to this machine.
+
 ## What this does
 
 ```
@@ -311,38 +393,6 @@ instruction takes 1 ns of virtual time and the 25 MHz SysTick advances one tick
 per 40 instructions, which was calibrated against a loop of known length. That
 makes per-operator costs deterministic and reproducible, but they are not
 hardware cycles: no wait states, no flash latency, no pipeline effects.
-
-## Key results (format)
-
-The README opens with these tables once results exist:
-
-**Runtime comparison — DS-CNN keyword spotter, Speech Commands v2**
-
-| Runtime | Accuracy (%) | Latency p50 (ms) | Model size (KB) | Peak RAM (KB) | Operators fused |
-|---------|-------------|-------------------|-----------------|---------------|-----------------|
-| PyTorch (ref) | — | — | — | — | — |
-| ONNX Runtime | — | — | — | — | — |
-| TFLite | — | — | — | — | — |
-| TensorRT FP16 | — | — | — | — | — |
-| TensorRT INT8 | — | — | — | — | — |
-| C engine FP32 | — | — | — | — | — |
-| C engine INT8 | — | — | — | — | — |
-
-**Quantization error accumulation** — per-layer max absolute error, INT8 vs FP32:
-
-(heatmap: layers on x-axis, runtimes on y-axis)
-
-**Memory timeline** — buffer lifetimes during inference:
-
-(gantt chart: one row per intermediate tensor, colored by physical buffer assignment)
-
-**Fusion impact** — Conv+BN+ReLU fused vs unfused:
-
-| Configuration | Latency (ms) | Memory (KB) | Numerical diff |
-|--------------|-------------|-------------|----------------|
-| Unfused (3 ops) | — | — | — |
-| Manual fusion (C) | — | — | — |
-| TensorRT auto | — | — | — |
 
 ## What you understand after this
 

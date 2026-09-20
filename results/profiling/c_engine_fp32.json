@@ -1,0 +1,94 @@
+{
+  "runtime": "c_engine",
+  "precision": "fp32",
+  "accuracy": 0.9397546569741027,
+  "latency_ms": {
+    "p50": 19.3657,
+    "p90": 20.4842,
+    "p99": 44.137,
+    "mean": 20.641077
+  },
+  "model_size_kb": 543.01171875,
+  "peak_ram_kb": 167.96875,
+  "peak_ram_source": "planner arena",
+  "ops": [
+    {
+      "name": "conv1",
+      "op": "conv2d",
+      "ms": 2.329355,
+      "bytes": 86000
+    },
+    {
+      "name": "dw1",
+      "op": "depthwise_conv",
+      "ms": 0.1567957,
+      "bytes": 86000
+    },
+    {
+      "name": "pw1",
+      "op": "pointwise_conv",
+      "ms": 4.423818,
+      "bytes": 86000
+    },
+    {
+      "name": "dw2",
+      "op": "depthwise_conv",
+      "ms": 0.162062,
+      "bytes": 86000
+    },
+    {
+      "name": "pw2",
+      "op": "pointwise_conv",
+      "ms": 4.4063513,
+      "bytes": 86000
+    },
+    {
+      "name": "dw3",
+      "op": "depthwise_conv",
+      "ms": 0.1564537,
+      "bytes": 86000
+    },
+    {
+      "name": "pw3",
+      "op": "pointwise_conv",
+      "ms": 4.426766,
+      "bytes": 86000
+    },
+    {
+      "name": "dw4",
+      "op": "depthwise_conv",
+      "ms": 0.16035429999999998,
+      "bytes": 86000
+    },
+    {
+      "name": "pw4",
+      "op": "pointwise_conv",
+      "ms": 4.3897772999999995,
+      "bytes": 86000
+    },
+    {
+      "name": "pool",
+      "op": "pool",
+      "ms": 0.0188263,
+      "bytes": 688
+    },
+    {
+      "name": "fc",
+      "op": "dense",
+      "ms": 0.008971,
+      "bytes": 140
+    }
+  ],
+  "fused": [
+    "conv1 + conv1_bn + conv1_relu",
+    "dw1 + dw1_bn + dw1_relu",
+    "pw1 + pw1_bn + pw1_relu",
+    "dw2 + dw2_bn + dw2_relu",
+    "pw2 + pw2_bn + pw2_relu",
+    "dw3 + dw3_bn + dw3_relu",
+    "pw3 + pw3_bn + pw3_relu",
+    "dw4 + dw4_bn + dw4_relu",
+    "pw4 + pw4_bn + pw4_relu"
+  ],
+  "arena_naive_kb": 758.58203125
+}

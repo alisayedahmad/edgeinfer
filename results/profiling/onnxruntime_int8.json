@@ -1,0 +1,132 @@
+{
+  "runtime": "onnxruntime",
+  "precision": "int8",
+  "accuracy": 0.9397546569741027,
+  "latency_ms": {
+    "p50": 0.46269999802461825,
+    "p90": 0.5601000011665747,
+    "p99": 1.0913000005530193,
+    "mean": 0.4997354998704395
+  },
+  "model_size_kb": 182.2919921875,
+  "peak_ram_kb": 0,
+  "peak_ram_source": "process rss high-water delta",
+  "ops": [
+    {
+      "name": "mfcc_QuantizeLinear",
+      "op": "quantize",
+      "ms": 0.00922,
+      "bytes": 490
+    },
+    {
+      "name": "Transpose",
+      "op": "other",
+      "ms": 0.006220000000000004,
+      "bytes": 490
+    },
+    {
+      "name": "conv1_token_1",
+      "op": "conv2d",
+      "ms": 0.05384,
+      "bytes": 21500
+    },
+    {
+      "name": "dw1_token_4",
+      "op": "depthwise_conv",
+      "ms": 0.04721999999999999,
+      "bytes": 21500
+    },
+    {
+      "name": "pw1_token_7",
+      "op": "pointwise_conv",
+      "ms": 0.07311999999999998,
+      "bytes": 21500
+    },
+    {
+      "name": "dw2_token_10",
+      "op": "depthwise_conv",
+      "ms": 0.047199999999999985,
+      "bytes": 21500
+    },
+    {
+      "name": "pw2_token_13",
+      "op": "pointwise_conv",
+      "ms": 0.07601999999999996,
+      "bytes": 21500
+    },
+    {
+      "name": "dw3_token_16",
+      "op": "depthwise_conv",
+      "ms": 0.04899999999999999,
+      "bytes": 21500
+    },
+    {
+      "name": "pw3_token_19",
+      "op": "pointwise_conv",
+      "ms": 0.07797999999999997,
+      "bytes": 21500
+    },
+    {
+      "name": "dw4_token_22",
+      "op": "depthwise_conv",
+      "ms": 0.04742,
+      "bytes": 21500
+    },
+    {
+      "name": "pw4_token_25",
+      "op": "pointwise_conv",
+      "ms": 0.07533999999999998,
+      "bytes": 21500
+    },
+    {
+      "name": "pool",
+      "op": "pool",
+      "ms": 0.012639999999999995,
+      "bytes": 172
+    },
+    {
+      "name": "Transpose_token_27",
+      "op": "other",
+      "ms": 0.006800000000000006,
+      "bytes": 172
+    },
+    {
+      "name": "flatten",
+      "op": "other",
+      "ms": 0.005900000000000002,
+      "bytes": 172
+    },
+    {
+      "name": "fc",
+      "op": "dense",
+      "ms": 0.014520000000000009,
+      "bytes": 35
+    },
+    {
+      "name": "logits_DequantizeLinear",
+      "op": "quantize",
+      "ms": 0.008940000000000003,
+      "bytes": 140
+    }
+  ],
+  "fused": [
+    "mfcc_QuantizeLinear",
+    "Transpose",
+    "conv1_token_1",
+    "dw1_token_4",
+    "pw1_token_7",
+    "dw2_token_10",
+    "pw2_token_13",
+    "dw3_token_16",
+    "pw3_token_19",
+    "dw4_token_22",
+    "pw4_token_25",
+    "pool",
+    "Transpose_token_27",
+    "flatten",
+    "fc",
+    "logits_DequantizeLinear"
+  ],
+  "nodes_before": 58,
+  "nodes_after": 16
+}

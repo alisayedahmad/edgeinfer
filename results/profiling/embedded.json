@@ -1,0 +1,172 @@
+{
+  "sections": {
+    ".isr_vector": 64,
+    ".text": 756364,
+    ".data": 0,
+    ".bss": 180424,
+    ".comment": 51,
+    ".debug_line": 3062,
+    ".debug_info": 2354,
+    ".debug_abbrev": 655,
+    ".debug_aranges": 256,
+    ".debug_str": 2157,
+    ".debug_frame": 472,
+    ".debug_loc": 4800,
+    ".debug_ranges": 232
+  },
+  "flash_bytes": 756428,
+  "flash_limit": 1048576,
+  "ram_bytes": 188616,
+  "ram_limit": 262144,
+  "stack_bytes": 8192,
+  "flash_fits": true,
+  "ram_fits": true,
+  "arena_bytes": {
+    "int8": {
+      "greedy": 43000,
+      "naive": 194200
+    },
+    "fp32": {
+      "greedy": 172000,
+      "naive": 776788
+    },
+    "fp32-unfused": {
+      "greedy": 172000,
+      "naive": 2324788
+    }
+  },
+  "qemu": [
+    {
+      "mode": "int8",
+      "word": "eight",
+      "label": 6,
+      "pred": 6,
+      "arena_bytes": 43000,
+      "steps": [
+        {
+          "name": "conv1",
+          "op": "conv2d",
+          "instructions": 28107760
+        },
+        {
+          "name": "dw1",
+          "op": "depthwise_conv",
+          "instructions": 2621280
+        },
+        {
+          "name": "pw1",
+          "op": "pointwise_conv",
+          "instructions": 23512120
+        },
+        {
+          "name": "dw2",
+          "op": "depthwise_conv",
+          "instructions": 2620920
+        },
+        {
+          "name": "pw2",
+          "op": "pointwise_conv",
+          "instructions": 23511800
+        },
+        {
+          "name": "dw3",
+          "op": "depthwise_conv",
+          "instructions": 2620880
+        },
+        {
+          "name": "pw3",
+          "op": "pointwise_conv",
+          "instructions": 23506760
+        },
+        {
+          "name": "dw4",
+          "op": "depthwise_conv",
+          "instructions": 2621120
+        },
+        {
+          "name": "pw4",
+          "op": "pointwise_conv",
+          "instructions": 23506640
+        },
+        {
+          "name": "pool",
+          "op": "pool",
+          "instructions": 132840
+        },
+        {
+          "name": "fc",
+          "op": "dense",
+          "instructions": 38480
+        }
+      ],
+      "mfcc_instructions": 10241640,
+      "infer_instructions": 132801040
+    },
+    {
+      "mode": "fp32",
+      "word": "eight",
+      "label": 6,
+      "pred": 6,
+      "arena_bytes": 172000,
+      "steps": [
+        {
+          "name": "conv1",
+          "op": "conv2d",
+          "instructions": 92570520
+        },
+        {
+          "name": "dw1",
+          "op": "depthwise_conv",
+          "instructions": 12843440
+        },
+        {
+          "name": "pw1",
+          "op": "pointwise_conv",
+          "instructions": 257586600
+        },
+        {
+          "name": "dw2",
+          "op": "depthwise_conv",
+          "instructions": 11927440
+        },
+        {
+          "name": "pw2",
+          "op": "pointwise_conv",
+          "instructions": 242656080
+        },
+        {
+          "name": "dw3",
+          "op": "depthwise_conv",
+          "instructions": 11793440
+        },
+        {
+          "name": "pw3",
+          "op": "pointwise_conv",
+          "instructions": 238805280
+        },
+        {
+          "name": "dw4",
+          "op": "depthwise_conv",
+          "instructions": 10032920
+        },
+        {
+          "name": "pw4",
+          "op": "pointwise_conv",
+          "instructions": 218621040
+        },
+        {
+          "name": "pool",
+          "op": "pool",
+          "instructions": 687040
+        },
+        {
+          "name": "fc",
+          "op": "dense",
+          "instructions": 550840
+        }
+      ],
+      "mfcc_instructions": 10241640,
+      "infer_instructions": 1098074960
+    }
+  ]
+}

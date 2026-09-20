@@ -1,0 +1,192 @@
+{
+  "runtime": "c_engine",
+  "precision": "fp32-unfused",
+  "accuracy": 0.9397546569741027,
+  "latency_ms": {
+    "p50": 40.7767,
+    "p90": 41.8955,
+    "p99": 46.4843,
+    "mean": 36.577129
+  },
+  "model_size_kb": 549.05859375,
+  "peak_ram_kb": 167.96875,
+  "peak_ram_source": "planner arena",
+  "ops": [
+    {
+      "name": "conv1",
+      "op": "conv2d",
+      "ms": 3.4922893,
+      "bytes": 86000
+    },
+    {
+      "name": "conv1_bn",
+      "op": "batch_norm",
+      "ms": 0.0377713,
+      "bytes": 86000
+    },
+    {
+      "name": "conv1_relu",
+      "op": "relu",
+      "ms": 0.0244223,
+      "bytes": 86000
+    },
+    {
+      "name": "dw1",
+      "op": "depthwise_conv",
+      "ms": 0.24477870000000002,
+      "bytes": 86000
+    },
+    {
+      "name": "dw1_bn",
+      "op": "batch_norm",
+      "ms": 0.030656,
+      "bytes": 86000
+    },
+    {
+      "name": "dw1_relu",
+      "op": "relu",
+      "ms": 0.0262143,
+      "bytes": 86000
+    },
+    {
+      "name": "pw1",
+      "op": "pointwise_conv",
+      "ms": 7.9137767000000006,
+      "bytes": 86000
+    },
+    {
+      "name": "pw1_bn",
+      "op": "batch_norm",
+      "ms": 0.038586300000000004,
+      "bytes": 86000
+    },
+    {
+      "name": "pw1_relu",
+      "op": "relu",
+      "ms": 0.023728700000000002,
+      "bytes": 86000
+    },
+    {
+      "name": "dw2",
+      "op": "depthwise_conv",
+      "ms": 0.24325729999999998,
+      "bytes": 86000
+    },
+    {
+      "name": "dw2_bn",
+      "op": "batch_norm",
+      "ms": 0.0312453,
+      "bytes": 86000
+    },
+    {
+      "name": "dw2_relu",
+      "op": "relu",
+      "ms": 0.0260233,
+      "bytes": 86000
+    },
+    {
+      "name": "pw2",
+      "op": "pointwise_conv",
+      "ms": 7.8612247,
+      "bytes": 86000
+    },
+    {
+      "name": "pw2_bn",
+      "op": "batch_norm",
+      "ms": 0.041265699999999995,
+      "bytes": 86000
+    },
+    {
+      "name": "pw2_relu",
+      "op": "relu",
+      "ms": 0.0241077,
+      "bytes": 86000
+    },
+    {
+      "name": "dw3",
+      "op": "depthwise_conv",
+      "ms": 0.24528229999999998,
+      "bytes": 86000
+    },
+    {
+      "name": "dw3_bn",
+      "op": "batch_norm",
+      "ms": 0.031475,
+      "bytes": 86000
+    },
+    {
+      "name": "dw3_relu",
+      "op": "relu",
+      "ms": 0.0262223,
+      "bytes": 86000
+    },
+    {
+      "name": "pw3",
+      "op": "pointwise_conv",
+      "ms": 7.8908983,
+      "bytes": 86000
+    },
+    {
+      "name": "pw3_bn",
+      "op": "batch_norm",
+      "ms": 0.0366137,
+      "bytes": 86000
+    },
+    {
+      "name": "pw3_relu",
+      "op": "relu",
+      "ms": 0.023951,
+      "bytes": 86000
+    },
+    {
+      "name": "dw4",
+      "op": "depthwise_conv",
+      "ms": 0.24489829999999999,
+      "bytes": 86000
+    },
+    {
+      "name": "dw4_bn",
+      "op": "batch_norm",
+      "ms": 0.0298897,
+      "bytes": 86000
+    },
+    {
+      "name": "dw4_relu",
+      "op": "relu",
+      "ms": 0.026452299999999998,
+      "bytes": 86000
+    },
+    {
+      "name": "pw4",
+      "op": "pointwise_conv",
+      "ms": 7.8572927,
+      "bytes": 86000
+    },
+    {
+      "name": "pw4_bn",
+      "op": "batch_norm",
+      "ms": 0.0396467,
+      "bytes": 86000
+    },
+    {
+      "name": "pw4_relu",
+      "op": "relu",
+      "ms": 0.0237763,
+      "bytes": 86000
+    },
+    {
+      "name": "pool",
+      "op": "pool",
+      "ms": 0.022664,
+      "bytes": 688
+    },
+    {
+      "name": "fc",
+      "op": "dense",
+      "ms": 0.014105,
+      "bytes": 140
+    }
+  ],
+  "fused": [],
+  "arena_naive_kb": 2270.30078125
+}
