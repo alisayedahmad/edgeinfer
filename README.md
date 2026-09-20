@@ -1,5 +1,7 @@
 # EdgeInfer
 
+[![ci](https://github.com/alisayedahmad/edgeinfer/actions/workflows/ci.yml/badge.svg)](https://github.com/alisayedahmad/edgeinfer/actions/workflows/ci.yml)
+
 Cross-runtime ML inference benchmark. Takes one model (DS-CNN keyword spotter), runs it through four inference backends, and measures where the time actually goes — per operator, per runtime, down to the memory allocation pattern.
 
 The point isn't "which runtime is fastest" as a headline number. It's understanding *why*: which operators fuse, where quantization helps vs hurts, how each runtime plans memory, and what happens when you strip away the runtime entirely and do it in raw C under embedded constraints.
