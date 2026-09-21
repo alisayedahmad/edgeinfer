@@ -160,32 +160,54 @@ def export_onnx_int8(src, out, calib, for_tensorrt=False):
 
 
 def export_tflite(onnx_path, out_dir, calib):
-    """fp32 tflite from onnx2tf, int8 from tflite's own calibration.
+    """fp32 and full-integer int8 tflite through onnx2tf.
 
-    onnx2tf rewrites the graph to nhwc and saves a savedmodel next to its
-    fp32 .tflite. the int8 model comes from TFLiteConverter with a
-    representative dataset, full integer so input and output are int8.
+    three quirks of onnx2tf 2.6.9 shape this function. it writes flatbuffers
+    directly instead of a savedmodel, so TFLiteConverter has nothing to
+    calibrate from and quantization happens inside onnx2tf. a dynamic batch
+    dimension makes it emit shape ops its quantizer refuses, so the graph is
+    pinned to batch 1 first, which tflite wants anyway. and per-channel
+    quantization fails validation here (it puts a channel axis on rank-1
+    tensors), so tflite alone gets per-tensor weights. the calibration clips
+    are the same ones every other runtime sees.
     """
     import onnx2tf
-    import tensorflow as tf
-    from ai_edge_litert.interpreter import Interpreter
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    # channels-last, to match the graph after onnx2tf transposes it
+    calib_path = out_dir / "calib_nhwc.npy"
+    np.save(calib_path, calib.transpose(0, 2, 3, 1).astype(np.float32))
+
+    model = onnx.load(onnx_path)
+    for tensor in list(model.graph.input) + list(model.graph.output):
+        batch = tensor.type.tensor_type.shape.dim[0]
+        batch.ClearField("dim_param")
+        batch.dim_value = 1
+    static = out_dir / "ds_cnn_static.onnx"
+    onnx.save(onnx.shape_inference.infer_shapes(model), static)
 
     saved = out_dir / "saved_model"
-    onnx2tf.convert(
-        input_onnx_file_path=str(onnx_path), output_folder_path=str(saved), batch_size=1,
-        output_signaturedefs=True, copy_onnx_input_output_names_to_tflite=True, non_verbose=True,
-    )
-    fp32 = out_dir / "ds_cnn_fp32.tflite"
-    shutil.copy(next(saved.glob("*_float32.tflite")), fp32)
-    shape = Interpreter(model_path=str(fp32)).get_input_details()[0]["shape"]
+    failure = None
+    try:
+        onnx2tf.convert(
+            input_onnx_file_path=str(static), output_folder_path=str(saved), batch_size=1,
+            output_signaturedefs=True, copy_onnx_input_output_names_to_tflite=True, non_verbose=True,
+            output_integer_quantized_tflite=True, quant_type="per-tensor",
+            # mean 0 and std 1: the calibration clips are already normalized
+            custom_input_op_name_np_data_path=[[model.graph.input[0].name, str(calib_path), 0.0, 1.0]],
+        )
+    except RuntimeError as error:
+        # onnx2tf also builds an int16-activation variant and fails validating
+        # it, since tflite wants an int64 bias there. the int8 model we asked
+        # for is written before that, so only the missing file is fatal
+        failure = error
 
-    converter = tf.lite.TFLiteConverter.from_saved_model(str(saved))
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    converter.representative_dataset = lambda: ([x.reshape(shape)] for x in calib)
-    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-    converter.inference_input_type = tf.int8
-    converter.inference_output_type = tf.int8
-    (out_dir / "ds_cnn_int8.tflite").write_bytes(converter.convert())
+    produced = {"ds_cnn_fp32.tflite": saved / f"{static.stem}_float32.tflite",
+                "ds_cnn_int8.tflite": saved / f"{static.stem}_full_integer_quant.tflite"}
+    for name, path in produced.items():
+        if not path.exists():
+            raise RuntimeError(f"onnx2tf wrote no {name}") from failure
+        shutil.copy(path, out_dir / name)
 
 
 def build_engine(onnx_path, engine_path, max_batch=256):
