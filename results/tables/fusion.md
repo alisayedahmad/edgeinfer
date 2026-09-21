@@ -17,6 +17,9 @@
 | onnxruntime fp32-unopt | 30       | 30          | -            |                               |
 | onnxruntime fp32       | 30       | 13          | -            |                               |
 | onnxruntime int8       | 58       | 16          | -            |                               |
+| pytorch fp32           | -        | -           | -            |                               |
+| tflite fp32            | -        | -           | -            |                               |
+| tflite int8            | -        | -           | -            |                               |
 
 ## fusion impact
 

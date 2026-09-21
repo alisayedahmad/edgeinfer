@@ -1,0 +1,16 @@
+{
+  "runtime": "tflite",
+  "precision": "int8",
+  "accuracy": 0.937664697864607,
+  "latency_ms": {
+    "p50": 122.54389998270199,
+    "p90": 263.27820000005886,
+    "p99": 270.1670999813359,
+    "mean": 156.92840950054233
+  },
+  "model_size_kb": 146.7734375,
+  "peak_ram_kb": 4748,
+  "peak_ram_source": "process rss high-water delta",
+  "ops": [],
+  "fused": []
+}
