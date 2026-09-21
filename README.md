@@ -18,10 +18,11 @@ features, batch 1, single threaded, on an i5-8250U laptop.
 | ONNX Runtime FP32 | 93.98 | 1.63 | 568 | — | 13 |
 | ONNX Runtime FP32, optimizations off | 93.98 | 2.68 | 568 | — | 30 |
 | ONNX Runtime INT8 | 93.98 | 0.46 | 182 | — | 16 |
+| TFLite FP32 | 93.98 | 2.89 | 548 | — | 13 |
+| TFLite INT8, per-tensor | 93.77 | 122.54 | 147 | — | 13 |
 | C engine FP32 | 93.98 | 19.37 | 543 | 168 | 11 |
 | C engine FP32, unfused | 93.98 | 40.78 | 549 | 168 | 29 |
 | C engine INT8 | 94.00 | 29.08 | 148 | 42 | 11 |
-| TFLite | not run | | | | no TensorFlow on this machine |
 | TensorRT FP16 / INT8 | not run | | | | GPU is Maxwell, TensorRT 11 needs Turing or newer |
 
 Peak RAM is the C engine's own planner arena, which is exact. ONNX Runtime
@@ -56,6 +57,15 @@ quantization exists for microcontrollers. On x86, ONNX Runtime's INT8 kernels ar
 (29.1 vs 19.4 ms), because straightforward integer code with a requantization per
 output loses to float that the compiler auto-vectorizes with AVX2. INT8 is a
 memory and energy win first; the speed depends on having kernels that exploit it.
+
+**Per-tensor quantization is a trap.** TFLite is the one int8 model here with a
+single scale per weight tensor rather than one per output channel, and it runs at
+122 ms against 2.9 ms for the same graph in float — 0.13 GFLOP/s, the signature of
+reference kernels. TFLite's optimized int8 convolutions are written for per-axis
+weights, so a per-tensor model falls off that path; disabling XNNPACK changes
+nothing, which rules the delegate out. It also costs accuracy: 93.77% against
+94.00% for the per-channel int8 in the C engine. Both facts argue the same way,
+and neither is visible from the conversion log.
 
 **Quantization cost essentially no accuracy.** The C engine's INT8 path scores
 94.00% against 93.98% for FP32, and ONNX Runtime's INT8 flips 93 of 11,005
@@ -418,6 +428,16 @@ to 4 kHz, 10 coefficients, 49 frames, Slaney mel scale, no `top_db` clipping.
 `data/speech_commands.py` is the single source of truth: training, every runtime
 and the Q15 tables in `c_engine/weights/mfcc_tables.h` all come from it.
 
+**onnx2tf 2.6.9 shaped the TFLite path more than I did.** It writes flatbuffers
+directly and no longer emits a SavedModel, so `TFLiteConverter` has nothing to
+calibrate from and quantization happens inside onnx2tf, fed the same calibration
+clips as everything else. A dynamic batch dimension makes it emit shape ops its
+quantizer rejects, so the graph is pinned to batch 1 first. And its per-channel
+mode writes a channel axis onto rank-1 tensors, which fails TFLite's own
+validation — hence per-tensor weights for TFLite alone. It also builds an
+int16-activation variant nobody asked for and throws when that one fails to
+validate, after the int8 model is already on disk.
+
 **Peak RAM is not one measurement.** The C engine reports its planner's arena
 exactly, TensorRT reports the engine's device memory, TFLite reports
 `benchmark_model`'s footprint, and ONNX Runtime has no such API so it reports the
@@ -483,8 +503,10 @@ scored on the full test set, not a smoke run.
   predictions flip.
 - **Cortex-M4** — cross-compiles, links inside the budget, runs under QEMU and
   classifies a real test clip correctly in both INT8 and soft-float FP32.
+- **TFLite** — converts and scores 93.98% in float, identical to PyTorch. Its
+  int8 model is full-integer and correct, but per-tensor, with the cost above.
 - **Fixed-point MFCC** — 0.017 dB mean error against librosa on real recordings.
 
-Not run here: TFLite, which needs TensorFlow, and TensorRT, which needs a Turing
-or newer GPU. Both paths are written and wired into `make bench`, which picks up
-whichever runtimes a machine can actually run.
+Not run here: TensorRT, which needs a Turing or newer GPU. The path is written
+and wired into `make bench`, which picks up whichever runtimes a machine can
+actually run.
