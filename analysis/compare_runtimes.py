@@ -46,6 +46,8 @@ def summary_table(records):
 def operator_table(records):
     rows = []
     for r in records:
+        if not r["ops"]:
+            continue
         share = op_share(r)
         total = sum(share.values()) or 1.0
         rows.append([f"{r['runtime']} {r['precision']}"] +
@@ -82,6 +84,8 @@ def chart(records):
     linear axis would flatten the fast ones into invisible slivers. the share
     panel keeps their breakdown readable next to the magnitude panel.
     """
+    # a runtime with no per-op profiler would draw an empty bar that reads as zero
+    records = [r for r in records if r["ops"]]
     style.setup()
     fig, (left, right) = style.plt.subplots(1, 2, figsize=(1.5 * len(records) + 5.0, 4.4))
     labels = [f"{r['runtime']}\n{r['precision']}" for r in records]
@@ -124,6 +128,9 @@ def main():
     text = ("# runtime comparison\n\nds-cnn keyword spotter, speech commands v2, batch 1.\n\n"
             + summary_table(records)
             + "\n## time per operator (ms)\n\n" + operator_table(records))
+    silent = sorted({r["runtime"] for r in records if not r["ops"]})
+    if silent:
+        text += f"\nno per-operator breakdown for {', '.join(silent)} on this machine.\n"
     embedded = embedded_table(profile.RESULTS / "embedded.json")
     if embedded:
         text += "\n## cortex-m4 target\n\n" + embedded
