@@ -3,7 +3,7 @@ PYTHON ?= python3
 BENCHMARK_URL := https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_x86-64_benchmark_model
 
 .PHONY: help data train export smoke-export c-engine test bench bench-onnx bench-tflite bench-trt bench-c \
-        analysis arm qemu tools clean
+        analysis arm qemu tools clean bench-torch
 
 help:
 	@grep -hE '^[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:[^#]*## /\t/' | expand -t 16
@@ -27,6 +27,9 @@ c-engine: ## build the c engine cli and run its operator tests
 test: ## python tests
 	$(PYTHON) -m pytest
 
+bench-torch: ## the pytorch reference
+	$(PYTHON) -m runtime.torch_runner
+
 bench-onnx: ## onnx runtime, fused and unfused, fp32 and int8
 	$(PYTHON) -m runtime.onnx_runner --precision fp32
 	$(PYTHON) -m runtime.onnx_runner --precision fp32-unopt
@@ -47,7 +50,7 @@ bench-c: ## the c engine, fused, unfused and int8
 	$(PYTHON) -m runtime.c_runner --precision int8
 
 # the optional ones keep going if a runtime is not installed on this machine
-bench: bench-onnx bench-c ## every runtime this machine can run
+bench: bench-torch bench-onnx bench-c ## every runtime this machine can run
 	-$(MAKE) bench-tflite
 	-$(MAKE) bench-trt
 
