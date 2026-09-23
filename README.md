@@ -264,7 +264,8 @@ edgeinfer/
 ├── Makefile
 ├── Dockerfile
 ├── .github/workflows/ci.yml
-└── requirements.txt
+├── requirements.txt
+└── requirements-backends.txt  # tflite + tensorrt, optional
 ```
 
 ## How it was built
@@ -357,6 +358,7 @@ or WSL if you are on Windows.
 
 ```bash
 pip install -r requirements.txt          # python 3.12 or 3.13, linux x86_64
+pip install -r requirements-backends.txt # only for tflite + tensorrt
 sudo apt install gcc-arm-none-eabi libnewlib-arm-none-eabi qemu-system-arm
 make help                                # every target, one line each
 ```
@@ -391,8 +393,8 @@ That path is what CI runs, using an untrained model and synthetic features.
 | Piece | Needs |
 |-------|-------|
 | training, export, onnx runtime, c engine | cpu only |
-| tflite export and runner | tensorflow (cpu is fine) |
-| tensorrt engines and runner | nvidia gpu, driver with cuda 13 support |
+| tflite export and runner | tensorflow (cpu is fine), from `requirements-backends.txt` |
+| tensorrt engines and runner | nvidia gpu, driver with cuda 13 support, same file |
 | `make qemu` | `arm-none-eabi-gcc`, `qemu-system-arm` 5.2+ (needs the mps2-an386 machine) |
 | tflite per-operator timings | `make tools`, which fetches tflite's `benchmark_model` |
 

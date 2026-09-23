@@ -1,17 +1,12 @@
-# python 3.12 or 3.13, linux x86_64
-# onnx2tf pins its whole stack (numpy, onnx, onnxruntime, onnxscript, litert, tf),
+# python 3.12 or 3.13, linux x86_64. this is the whole benchmark except the
+# two optional backends, which are gigabytes and live in requirements-backends.txt
+# onnx2tf pins this stack (numpy, onnx, onnxruntime, onnxscript, litert, tf),
 # so everything below follows its pins
 torch==2.11.0
 numpy==2.2.6
 onnx==1.20.1
 onnxscript==0.6.2
 onnxruntime==1.26.0
-onnx2tf[tensorflow]==2.6.9
-ai-edge-litert==2.1.2
-
-# tensorrt 11 wheels built for cuda 13, same as the torch 2.11 linux wheels.
-# needs an nvidia driver that supports cuda 13 (r580+)
-tensorrt==11.3.0.99
 
 librosa==1.0.0
 soundfile

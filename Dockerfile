@@ -16,9 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work
-COPY requirements.txt .
-# ubuntu 24.04 ships python 3.12 and marks it externally managed
-RUN pip3 install --break-system-packages -r requirements.txt
+COPY requirements.txt requirements-backends.txt ./
+# ubuntu 24.04 ships python 3.12 and marks it externally managed.
+# the backends file pulls requirements.txt in, so this is the full stack
+RUN pip3 install --break-system-packages -r requirements-backends.txt
 
 COPY . .
 CMD ["make", "help"]

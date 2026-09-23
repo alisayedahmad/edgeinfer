@@ -1,0 +1,10 @@
+# tflite and tensorrt, on top of the stack above. both are large downloads and
+# tensorrt also needs a supported gpu, so a cpu-only run never installs them
+-r requirements.txt
+
+onnx2tf[tensorflow]==2.6.9
+ai-edge-litert==2.1.2
+
+# tensorrt 11 wheels built for cuda 13, same as the torch 2.11 linux wheels.
+# needs an nvidia driver that supports cuda 13 (r580+)
+tensorrt==11.3.0.99
