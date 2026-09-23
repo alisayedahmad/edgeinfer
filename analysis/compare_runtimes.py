@@ -56,6 +56,25 @@ def operator_table(records):
     return style.markdown(["runtime", *style.OPS], rows)
 
 
+def measured_on(records):
+    """the wall-clock rows do not all come from one machine, so name them.
+
+    written as a list rather than a table column because most of a provenance
+    block repeats, and only the distinct machines are worth reading.
+    """
+    machines = {}
+    for r in records:
+        prov = r.get("provenance")
+        if not prov:
+            continue
+        key = (prov.get("cpu", "?"), prov.get("cores"), prov.get("os", "?"),
+               prov.get("python", "?"), prov.get("commit", "?"))
+        machines.setdefault(key, []).append(f"{r['runtime']} {r['precision']}")
+    lines = [f"- {cpu}, {cores} cores, {os_name}, python {py}, commit `{commit}`: {', '.join(rows)}"
+             for (cpu, cores, os_name, py, commit), rows in machines.items()]
+    return "\n".join(lines) + "\n" if lines else ""
+
+
 def embedded_table(path):
     if not path.exists():
         return ""
@@ -131,6 +150,9 @@ def main():
     silent = sorted({r["runtime"] for r in records if not r["ops"]})
     if silent:
         text += f"\nno per-operator breakdown for {', '.join(silent)} on this machine.\n"
+    machines = measured_on(records)
+    if machines:
+        text += "\n## measured on\n\n" + machines
     embedded = embedded_table(profile.RESULTS / "embedded.json")
     if embedded:
         text += "\n## cortex-m4 target\n\n" + embedded
