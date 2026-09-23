@@ -29,7 +29,9 @@ def run(precision, runs):
     cli("eval", precision, FEATURES, len(x), logits_path)
     logits = np.fromfile(logits_path, np.float32).reshape(len(x), -1)
 
-    bench = json.loads(cli("bench", precision, runs))
+    # the same fastest-of-rounds rule the python runners use, see profile.fastest
+    bench = profile.fastest(lambda: json.loads(cli("bench", precision, runs)),
+                            lambda b: b["latency_ns"]["p50"])
     plan = json.loads(cli("plan", precision))
     layers = [t["name"] for t in plan["tensors"] if t["name"] not in ("input", "pool", "fc")]
     return {
@@ -49,6 +51,6 @@ def run(precision, runs):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="c engine inference and profiling")
     p.add_argument("--precision", default="int8", choices=["fp32", "fp32-unfused", "int8"])
-    p.add_argument("--runs", type=int, default=1000)
+    p.add_argument("--runs", type=int, default=200)
     args = p.parse_args()
     profile.save(run(args.precision, args.runs))
