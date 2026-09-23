@@ -50,8 +50,52 @@ def c_engine_error(samples):
     return rows
 
 
+# these pad or move data instead of computing, so they are not layers, and
+# dropping them lines tflite's sequence up with the c engine's one for one
+LAYOUT_OPS = {"PAD", "RESHAPE", "TRANSPOSE", "QUANTIZE", "DEQUANTIZE", "SHAPE", "CAST"}
+
+
+def dequantize(tensor, params):
+    """back to float, per-axis included, since a tflite tensor can carry a scale per channel."""
+    tensor = tensor.astype(np.float32)
+    scales = np.asarray(params["scales"])
+    if not scales.size:
+        return tensor
+    shape = [1] * tensor.ndim
+    shape[params["quantized_dimension"]] = scales.size
+    return (tensor - np.asarray(params["zero_points"]).reshape(shape)) * scales.reshape(shape)
+
+
+def tflite_outputs(path, x, samples):
+    """every operator output of one model, keyed by tensor name."""
+    from ai_edge_litert.interpreter import Interpreter
+
+    interp = Interpreter(model_path=str(path), experimental_preserve_all_tensors=True)
+    interp.allocate_tensors()
+    details = {d["index"]: d for d in interp.get_tensor_details()}
+    # the tensor list also holds the weights, and only the op table says which
+    # tensor an operator writes, so this is the one place a private call earns itself
+    produced = [i for op in interp._get_ops_details() if op["op_name"] not in LAYOUT_OPS
+                for i in op["outputs"]]
+    inp = interp.get_input_details()[0]
+    values = {}
+    for sample in x[:samples]:
+        v = sample.reshape(inp["shape"])
+        if inp["dtype"] == np.int8:
+            scale, zp = inp["quantization"]
+            v = np.clip(np.round(v / scale) + zp, -128, 127)
+        interp.set_tensor(inp["index"], v.astype(inp["dtype"]))
+        interp.invoke()
+        for index in produced:
+            detail = details[index]
+            name = detail["name"] or f"tensor {index}"
+            values.setdefault(name, []).append(
+                dequantize(interp.get_tensor(index), detail["quantization_parameters"]).ravel())
+    return {name: np.stack(rows) for name, rows in values.items()}
+
+
 def tflite_error(samples):
-    """same comparison for tflite, matched by execution order."""
+    """same comparison for tflite, matched by tensor name rather than by order."""
     try:
         from runtime import tflite_runner
     except ImportError:
@@ -61,39 +105,14 @@ def tflite_error(samples):
         return []
 
     x, _ = profile.eval_set()
-    outputs = {}
-    for precision, path in paths.items():
-        from ai_edge_litert.interpreter import Interpreter
-
-        interp = Interpreter(model_path=str(path), experimental_preserve_all_tensors=True)
-        interp.allocate_tensors()
-        inp = interp.get_input_details()[0]
-        keep = [d for d in interp.get_tensor_details()
-                if d["dtype"] in (np.float32, np.int8) and len(d["shape"]) == 4 and d["index"] != inp["index"]]
-        values = []
-        for sample in x[:samples]:
-            v = sample.reshape(inp["shape"])
-            if inp["dtype"] == np.int8:
-                scale, zp = inp["quantization"]
-                v = np.clip(np.round(v / scale) + zp, -128, 127)
-            interp.set_tensor(inp["index"], v.astype(inp["dtype"]))
-            interp.invoke()
-            row = []
-            for detail in keep:
-                t = interp.get_tensor(detail["index"]).astype(np.float32)
-                scale, zp = detail["quantization"]
-                row.append(((t - zp) * scale if scale else t).ravel())
-            values.append(row)
-        outputs[precision] = values
-
+    fp32, int8 = tflite_outputs(paths["fp32"], x, samples), tflite_outputs(paths["int8"], x, samples)
     rows = []
-    for layer in range(min(len(outputs["fp32"][0]), len(outputs["int8"][0]))):
-        a = np.stack([v[layer] for v in outputs["fp32"]])
-        b = np.stack([v[layer] for v in outputs["int8"]])
-        if a.shape != b.shape:
+    for name, a in fp32.items():
+        b = int8.get(name)
+        if b is None or a.shape != b.shape:
             continue
         spread = float(a.max() - a.min()) or 1.0
-        rows.append({"layer": f"tensor {layer}", "max_abs": float(np.abs(a - b).max()),
+        rows.append({"layer": name.removeprefix("wa/"), "max_abs": float(np.abs(a - b).max()),
                      "rel_percent": float(np.abs(a - b).max() / spread * 100),
                      "rms_percent": float(np.sqrt(((a - b) ** 2).mean()) / spread * 100)})
     return rows
