@@ -69,6 +69,12 @@ nothing, which rules the delegate out. It also costs accuracy: 93.77% against
 94.00% for the per-channel int8 in the C engine. Both facts argue the same way,
 and neither is visible from the conversion log.
 
+The per-layer heatmap shows where that accuracy goes. Through the eight
+convolutions TFLite stays within a point and a half of the C engine's per-channel
+error, then the last pointwise layer breaks: its int8 activation range covers 1.5
+where the float one spans 11.7, so the error jumps to 87% of the layer's range
+against 8.8% per-channel, and 62% survives the pooling into the classifier.
+
 **Quantization cost essentially no accuracy.** The C engine's INT8 path scores
 94.00% against 93.98% for FP32, and ONNX Runtime's INT8 flips 93 of 11,005
 predictions while getting exactly as many right. Per-layer error does accumulate
