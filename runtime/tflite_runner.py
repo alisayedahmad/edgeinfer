@@ -79,17 +79,21 @@ def benchmark(path, runs):
 def run(precision, runs):
     path = profile.ARTIFACTS / "tflite" / MODELS[precision]
     x, y = profile.eval_set()
+    # the eval set is loaded first on purpose: the figure has to cover the
+    # runtime and its arena, not the batch of inputs a runner happens to use
     before = profile.rss_kb()
     interp = interpreter(path)
-    logits = predict(interp, x)
-    rss = profile.rss_kb() - before
-
     inp = interp.get_input_details()[0]
     sample = x[:1].reshape(inp["shape"])
     if inp["dtype"] == np.int8:
         scale, zp = inp["quantization"]
         sample = np.clip(np.round(sample / scale) + zp, -128, 127)
     sample = sample.astype(inp["dtype"])
+    interp.set_tensor(inp["index"], sample)
+    interp.invoke()
+    rss = profile.rss_kb() - before
+
+    logits = predict(interp, x)
 
     def once():
         interp.set_tensor(inp["index"], sample)
@@ -102,7 +106,7 @@ def run(precision, runs):
         "latency_ms": profile.latency(once, runs),
         "model_size_kb": path.stat().st_size / 1024,
         "peak_ram_kb": peak if peak else rss,
-        "peak_ram_source": "benchmark_model peak footprint" if peak else "process rss high-water delta",
+        "peak_ram_source": "benchmark_model peak footprint" if peak else "rss for the runtime plus one inference",
         "ops": ops,
         "fused": [op["name"] for op in ops],
         # the interpreter knows its kernel count even when benchmark_model is absent

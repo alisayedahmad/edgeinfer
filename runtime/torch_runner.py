@@ -18,18 +18,21 @@ from train.ds_cnn import load
 def run(runs, batch):
     # single threaded, like every other runtime here
     torch.set_num_threads(1)
-    model, _ = load(profile.ARTIFACTS / "ds_cnn.pt")
     x, y = profile.eval_set()
-
+    # the eval set is loaded first on purpose: the figure has to cover the
+    # runtime and its arena, not the batch of inputs a runner happens to use
     before = profile.rss_kb()
+    model, _ = load(profile.ARTIFACTS / "ds_cnn.pt")
+    sample = torch.from_numpy(x[:1])
+    with torch.inference_mode():
+        model(sample)
+    peak = profile.rss_kb() - before
+
     logits = []
     with torch.inference_mode():
         for start in range(0, len(x), batch):
             logits.append(model(torch.from_numpy(x[start:start + batch])).numpy())
-    peak = profile.rss_kb() - before
     logits = [row for chunk in logits for row in chunk]
-
-    sample = torch.from_numpy(x[:1])
 
     def once():
         with torch.inference_mode():
@@ -41,7 +44,7 @@ def run(runs, batch):
         "accuracy": profile.accuracy(logits, y),
         "latency_ms": profile.latency(once, runs),
         "model_size_kb": weights / 1024,
-        "peak_ram_kb": peak, "peak_ram_source": "process rss high-water delta",
+        "peak_ram_kb": peak, "peak_ram_source": "rss for the runtime plus one inference",
         "ops": [], "fused": [],
     }
 

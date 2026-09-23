@@ -60,13 +60,16 @@ def profile_ops(path, level, x, runs=50):
 def run(precision, runs, batch):
     path = profile.ARTIFACTS / MODELS[precision]
     x, y = profile.eval_set()
+    # the eval set is loaded first on purpose: the figure has to cover the
+    # runtime and its arena, not the batch of inputs a runner happens to use
     before = profile.rss_kb()
-
     optimized = profile.ARTIFACTS / f"ds_cnn_ort_{precision}.onnx"
     sess = session(path, LEVELS[precision], optimized_path=optimized)
     name = sess.get_inputs()[0].name
-    logits = np.concatenate([sess.run(None, {name: x[i:i + batch]})[0] for i in range(0, len(x), batch)])
+    sess.run(None, {name: x[:1]})
     peak = profile.rss_kb() - before
+
+    logits = np.concatenate([sess.run(None, {name: x[i:i + batch]})[0] for i in range(0, len(x), batch)])
 
     graph = onnx.load(optimized).graph
     return {
@@ -74,7 +77,7 @@ def run(precision, runs, batch):
         "accuracy": profile.accuracy(logits, y),
         "latency_ms": profile.latency(lambda: sess.run(None, {name: x[:1]}), runs),
         "model_size_kb": path.stat().st_size / 1024,
-        "peak_ram_kb": peak, "peak_ram_source": "process rss high-water delta",
+        "peak_ram_kb": peak, "peak_ram_source": "rss for the runtime plus one inference",
         "ops": profile_ops(path, LEVELS[precision], x),
         "fused": [n.name for n in graph.node],
         "nodes_before": len(onnx.load(path).graph.node), "nodes_after": len(graph.node),
