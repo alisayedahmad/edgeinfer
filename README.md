@@ -18,16 +18,18 @@ features, batch 1, single threaded, on an i5-8250U laptop.
 | ONNX Runtime FP32 | 93.98 | 1.63 | 568 | — | 13 |
 | ONNX Runtime FP32, optimizations off | 93.98 | 2.68 | 568 | — | 30 |
 | ONNX Runtime INT8 | 93.98 | 0.46 | 182 | — | 16 |
-| TFLite FP32 | 93.98 | 2.89 | 548 | — | 13 |
-| TFLite INT8, per-tensor | 93.77 | 122.54 | 147 | — | 13 |
-| C engine FP32 | 93.98 | 19.37 | 543 | 168 | 11 |
-| C engine FP32, unfused | 93.98 | 40.78 | 549 | 168 | 29 |
-| C engine INT8 | 94.00 | 29.08 | 148 | 42 | 11 |
+| TFLite FP32 | 93.98 | 2.89 | 548 | 6088 (process) | — |
+| TFLite INT8, per-tensor | 93.77 | 122.54 | 147 | 4748 (process) | — |
+| C engine FP32 | 93.98 | 19.37 | 543 | 168 (planner) | 11 |
+| C engine FP32, unfused | 93.98 | 40.78 | 549 | 168 (planner) | 29 |
+| C engine INT8 | 94.00 | 29.08 | 148 | 42 (planner) | 11 |
 | TensorRT FP16 / INT8 | not run | | | | GPU is Maxwell, TensorRT 11 needs Turing or newer |
 
-Peak RAM is the C engine's own planner arena, which is exact. ONNX Runtime
-exposes no equivalent figure; `results/tables/memory.md` says how each runtime's
-number was obtained.
+The C engine's peak RAM is its own planner arena, which is exact. TFLite's is the
+process high-water mark, interpreter included, so the two do not compare directly.
+ONNX Runtime exposes no equivalent figure. Kernel counts come from each runtime's
+own profiler, which is why PyTorch and TFLite have none here;
+`results/tables/memory.md` says how each number was obtained.
 
 **On the Cortex-M4 target** (QEMU mps2-an386, instruction counts under `-icount`,
 both weight sets compiled in):
