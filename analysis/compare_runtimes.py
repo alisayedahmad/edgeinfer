@@ -37,10 +37,13 @@ def summary_table(records):
         rows.append([
             r["runtime"], r["precision"], f"{r.get('accuracy', float('nan')) * 100:.2f}",
             f"{r['latency_ms']['p50']:.3f}", f"{r['latency_ms']['p90']:.3f}",
-            f"{r['model_size_kb']:.1f}", ram, len(r.get("fused") or []),
+            f"{r['model_size_kb']:.1f}", ram,
+            # "fused" means fusion groups in the c engine but every kernel in
+            # the others, so counting it puts two quantities in one column
+            r.get("nodes_after") or len(r.get("ops") or []) or "-",
         ])
     return style.markdown(
-        ["runtime", "precision", "accuracy %", "p50 ms", "p90 ms", "size kb", "peak ram kb", "kernels"], rows)
+        ["runtime", "precision", "accuracy %", "p50 ms", "p90 ms", "size kb", "peak ram kb", "kernels run"], rows)
 
 
 def operator_table(records):

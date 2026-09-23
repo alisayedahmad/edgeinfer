@@ -2,17 +2,17 @@
 
 ds-cnn keyword spotter, speech commands v2, batch 1.
 
-| runtime     | precision    | accuracy % | p50 ms  | p90 ms  | size kb | peak ram kb    | kernels |
-|-------------|--------------|------------|---------|---------|---------|----------------|---------|
-| pytorch     | fp32         | 93.98      | 4.720   | 6.191   | 549.1   | n/a            | 0       |
-| onnxruntime | fp32         | 93.98      | 1.627   | 2.398   | 568.3   | n/a            | 13      |
-| onnxruntime | fp32-unopt   | 93.98      | 2.684   | 3.800   | 568.3   | n/a            | 30      |
-| onnxruntime | int8         | 93.98      | 0.463   | 0.560   | 182.3   | n/a            | 16      |
-| tflite      | fp32         | 93.98      | 2.894   | 3.461   | 547.7   | 6088 (process) | 0       |
-| tflite      | int8         | 93.77      | 122.544 | 263.278 | 146.8   | 4748 (process) | 0       |
-| c_engine    | fp32         | 93.98      | 19.366  | 20.484  | 543.0   | 168 (planner)  | 9       |
-| c_engine    | fp32-unfused | 93.98      | 40.777  | 41.895  | 549.1   | 168 (planner)  | 0       |
-| c_engine    | int8         | 94.00      | 29.077  | 30.424  | 148.1   | 42 (planner)   | 9       |
+| runtime     | precision    | accuracy % | p50 ms  | p90 ms  | size kb | peak ram kb    | kernels run |
+|-------------|--------------|------------|---------|---------|---------|----------------|-------------|
+| pytorch     | fp32         | 93.98      | 4.720   | 6.191   | 549.1   | n/a            | -           |
+| onnxruntime | fp32         | 93.98      | 1.627   | 2.398   | 568.3   | n/a            | 13          |
+| onnxruntime | fp32-unopt   | 93.98      | 2.684   | 3.800   | 568.3   | n/a            | 30          |
+| onnxruntime | int8         | 93.98      | 0.463   | 0.560   | 182.3   | n/a            | 16          |
+| tflite      | fp32         | 93.98      | 2.894   | 3.461   | 547.7   | 6088 (process) | -           |
+| tflite      | int8         | 93.77      | 122.544 | 263.278 | 146.8   | 4748 (process) | -           |
+| c_engine    | fp32         | 93.98      | 19.366  | 20.484  | 543.0   | 168 (planner)  | 11          |
+| c_engine    | fp32-unfused | 93.98      | 40.777  | 41.895  | 549.1   | 168 (planner)  | 29          |
+| c_engine    | int8         | 94.00      | 29.077  | 30.424  | 148.1   | 42 (planner)   | 11          |
 
 ## time per operator (ms)
 
