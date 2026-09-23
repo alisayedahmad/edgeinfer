@@ -13,4 +13,6 @@ soundfile
 # the mfcc dct comes straight from scipy, not through librosa
 scipy
 matplotlib
+# profile.rss_kb falls back to psutil where there is no resource module
+psutil
 pytest
