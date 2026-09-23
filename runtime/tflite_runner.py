@@ -105,6 +105,8 @@ def run(precision, runs):
         "peak_ram_source": "benchmark_model peak footprint" if peak else "process rss high-water delta",
         "ops": ops,
         "fused": [op["name"] for op in ops],
+        # the interpreter knows its kernel count even when benchmark_model is absent
+        "nodes_after": len(interp._get_ops_details()),
     }
 
 
