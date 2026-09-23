@@ -161,7 +161,7 @@ def provenance():
     commit = git("rev-parse", "--short", "HEAD")
     if commit and git("status", "--porcelain", "--", ":!results"):
         commit += "-dirty"
-    return {
+    block = {
         "recorded": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "commit": commit,
         "cpu": cpu_name(),
@@ -170,6 +170,10 @@ def provenance():
         "python": platform.python_version(),
         "packages": versions,
     }
+    marker = ARTIFACTS / "smoke"
+    if marker.exists():
+        block["smoke"] = marker.read_text().strip()
+    return block
 
 
 def save(record):

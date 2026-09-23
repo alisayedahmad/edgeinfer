@@ -144,9 +144,11 @@ def main():
     records = sorted(profile.load_all(), key=sort_key)
     if not records:
         raise SystemExit("no results in results/profiling, run the runners first")
-    text = ("# runtime comparison\n\nds-cnn keyword spotter, speech commands v2, batch 1.\n\n"
-            + summary_table(records)
-            + "\n## time per operator (ms)\n\n" + operator_table(records))
+    header = "# runtime comparison\n\nds-cnn keyword spotter, speech commands v2, batch 1.\n\n"
+    smoke = sorted({r["provenance"]["smoke"] for r in records if r.get("provenance", {}).get("smoke")})
+    if smoke:
+        header += f"measured on a smoke export ({', '.join(smoke)}), not on the trained model.\n\n"
+    text = header + summary_table(records) + "\n## time per operator (ms)\n\n" + operator_table(records)
     silent = sorted({r["runtime"] for r in records if not r["ops"]})
     if silent:
         text += f"\nno per-operator breakdown for {', '.join(silent)} on this machine.\n"

@@ -414,6 +414,14 @@ def main():
         q = quant.quantize_model(model, torch.from_numpy(calib))
         write_c_headers(model, ckpt, q, WEIGHTS)
         write_clip_header(clip, ckpt["words"][clip[1]], WEIGHTS)
+    # a smoke export leaves a marker so the results it feeds cannot be read
+    # as measurements of the trained model
+    marker = ARTIFACTS / "smoke"
+    reasons = [flag for flag, on in (("random-model", args.random_model), ("synthetic", args.synthetic)) if on]
+    if reasons:
+        marker.write_text(" ".join(reasons))
+    else:
+        marker.unlink(missing_ok=True)
     print(f"exported {', '.join(args.targets)} -> {ARTIFACTS}")
 
 
