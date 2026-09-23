@@ -7,15 +7,20 @@ same shape, so analysis/ never has to know which runtime produced what:
      "latency_ms": {"p50": .., "p90": .., "p99": .., "mean": ..},
      "model_size_kb": .., "peak_ram_kb": .., "peak_ram_source": "..",
      "ops": [{"name": "conv1", "op": "conv2d", "ms": .., "bytes": ..}],
-     "fused": ["conv1 + conv1_bn + conv1_relu", ..]}
+     "fused": ["conv1 + conv1_bn + conv1_relu", ..],
+     "provenance": {"cpu": .., "os": .., "commit": .., "packages": {..}}}
 
 peak ram is not the same measurement everywhere, so peak_ram_source says
 where the number came from and the comparison table prints it.
 """
 import json
 import os
+import platform
 import re
+import subprocess
 import time
+from datetime import datetime, timezone
+from importlib import metadata
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +41,9 @@ TYPE_OP = {
     "quantizelinear": "quantize", "dequantizelinear": "quantize", "quantize": "quantize", "dequantize": "quantize",
     "reshape": "other", "flatten": "other", "transpose": "other", "cast": "other", "shape": "other",
 }
+
+# the packages whose version can move a latency, checked once per record
+TRACKED = ("torch", "numpy", "onnx", "onnxruntime", "onnx2tf", "ai-edge-litert", "tensorrt")
 
 
 def canonical_op(name, op_type=""):
@@ -107,8 +115,66 @@ def rss_kb():
         return 0
 
 
+def git(*args):
+    try:
+        done = subprocess.run(("git", "-C", str(REPO), *args), capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def cpu_name():
+    """the model name, wherever the platform keeps it"""
+    system = platform.system()
+    if system == "Linux":
+        try:
+            for line in Path("/proc/cpuinfo").read_text().splitlines():
+                if line.startswith("model name"):
+                    return line.split(":", 1)[1].strip()
+        except OSError:
+            pass
+    elif system == "Windows":
+        try:
+            import winreg
+
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                r"HARDWARE\DESCRIPTION\System\CentralProcessor\0") as key:
+                return winreg.QueryValueEx(key, "ProcessorNameString")[0].strip()
+        except OSError:
+            pass
+    return platform.processor() or platform.machine()
+
+
+def provenance():
+    """the machine, the versions and the commit that produced a record.
+
+    a latency on its own is unreadable a few months later, and the rows of
+    the comparison table are only comparable while they share this block.
+    results/ is excluded from the dirty check because a benchmark writes there.
+    """
+    versions = {}
+    for name in TRACKED:
+        try:
+            versions[name] = metadata.version(name)
+        except metadata.PackageNotFoundError:
+            continue
+    commit = git("rev-parse", "--short", "HEAD")
+    if commit and git("status", "--porcelain", "--", ":!results"):
+        commit += "-dirty"
+    return {
+        "recorded": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "commit": commit,
+        "cpu": cpu_name(),
+        "cores": os.cpu_count(),
+        "os": f"{platform.system().lower()} {platform.release()}",
+        "python": platform.python_version(),
+        "packages": versions,
+    }
+
+
 def save(record):
     RESULTS.mkdir(parents=True, exist_ok=True)
+    record.setdefault("provenance", provenance())
     path = RESULTS / f"{record['runtime']}_{record['precision']}.json"
     path.write_text(json.dumps(record, indent=2))
     lat = record["latency_ms"]
