@@ -51,6 +51,7 @@ def run(precision, runs):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="c engine inference and profiling")
     p.add_argument("--precision", default="int8", choices=["fp32", "fp32-unfused", "int8"])
-    p.add_argument("--runs", type=int, default=200)
+    # about two seconds per round, the same target the python runners use
+    p.add_argument("--runs", type=int, default=100)
     args = p.parse_args()
     profile.save(run(args.precision, args.runs))

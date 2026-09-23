@@ -104,10 +104,19 @@ def fastest(measure, p50_of):
     return best
 
 
-def latency(run, runs=200, warmup=20):
-    """wall-clock percentiles of a single-sample inference, in ms."""
+def latency(run, runs=200, warmup=20, target=2.0):
+    """wall-clock percentiles of a single-sample inference, in ms.
+
+    `runs` is an upper bound: a round is cut down to about `target` seconds so
+    that a slow model still gets enough rounds inside the budget to catch the
+    fast cpu state. at 200 runs the 122 ms tflite model spent a whole round in
+    the slow one and came out 40 percent high.
+    """
     for _ in range(warmup):
         run()
+    start = time.perf_counter()
+    run()
+    runs = max(20, min(runs, int(target / max(time.perf_counter() - start, 1e-9))))
 
     def once():
         times = []
