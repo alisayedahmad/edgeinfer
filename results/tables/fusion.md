@@ -2,10 +2,10 @@
 
 ## what the exporter already folded
 
-| export                      | nodes | conv | batchnorm | relu | rest                                      |
-|-----------------------------|-------|------|-----------|------|-------------------------------------------|
-| torchscript (ds_cnn.onnx)   | 30    | 9    | 9         | 9    | GlobalAveragePool x1, Flatten x1, Gemm x1 |
-| dynamo (ds_cnn_dynamo.onnx) | 21    | 9    | 0         | 9    | ReduceMean x1, Reshape x1, Gemm x1        |
+| export                      | nodes | conv | batchnorm | relu | rest                                                    |
+|-----------------------------|-------|------|-----------|------|---------------------------------------------------------|
+| torchscript (ds_cnn.onnx)   | 30    | 9    | 9         | 9    | GlobalAveragePool x1, Flatten x1, Gemm x1               |
+| dynamo (ds_cnn_dynamo.onnx) | 23    | 9    | 0         | 9    | Shape x1, ReduceMean x1, Concat x1, Reshape x1, Gemm x1 |
 
 ## what each runtime runs
 
@@ -18,17 +18,17 @@
 | onnxruntime fp32       | 30       | 13          | -            |                               |
 | onnxruntime int8       | 58       | 16          | -            |                               |
 | pytorch fp32           | -        | -           | -            |                               |
-| tflite fp32            | -        | -           | -            |                               |
-| tflite int8            | -        | -           | -            |                               |
+| tflite fp32            | -        | 13          | -            |                               |
+| tflite int8            | -        | 13          | -            |                               |
 
 ## fusion impact
 
 | configuration                      | p50 ms | peak ram kb | kernels |
 |------------------------------------|--------|-------------|---------|
-| c engine, unfused (conv, bn, relu) | 40.777 | 168         | 29      |
-| c engine, manual fusion            | 19.366 | 168         | 11      |
-| onnx runtime, optimizations off    | 2.684  | n/a         | 30      |
-| onnx runtime, optimizations on     | 1.627  | n/a         | 13      |
+| c engine, unfused (conv, bn, relu) | 17.613 | 168         | 29      |
+| c engine, manual fusion            | 17.226 | 168         | 11      |
+| onnx runtime, optimizations off    | 1.202  | 6396        | 30      |
+| onnx runtime, optimizations on     | 0.467  | 7296        | 13      |
 
 | numerical difference (max abs logit) | value     |
 |--------------------------------------|-----------|

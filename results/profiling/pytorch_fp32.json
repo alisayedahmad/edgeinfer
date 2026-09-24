@@ -3,14 +3,30 @@
   "precision": "fp32",
   "accuracy": 0.9397546569741027,
   "latency_ms": {
-    "p50": 4.7204999973473605,
-    "p90": 6.190800002514152,
-    "p99": 7.624200003192527,
-    "mean": 5.120447000117565
+    "p50": 2.0823999657295644,
+    "p90": 2.828500000759959,
+    "p99": 3.8586999871768057,
+    "mean": 2.2180969986948185
   },
   "model_size_kb": 549.05859375,
-  "peak_ram_kb": 0,
-  "peak_ram_source": "not measured",
+  "peak_ram_kb": 6432,
+  "peak_ram_source": "rss for the runtime plus one inference",
   "ops": [],
-  "fused": []
+  "fused": [],
+  "provenance": {
+    "recorded": "2026-09-23T23:22:05+00:00",
+    "commit": "894349b",
+    "cpu": "Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz",
+    "cores": 8,
+    "os": "windows 11",
+    "python": "3.13.9",
+    "packages": {
+      "torch": "2.11.0",
+      "numpy": "2.2.6",
+      "onnx": "1.20.1",
+      "onnxruntime": "1.26.0",
+      "onnx2tf": "2.6.9",
+      "ai-edge-litert": "2.1.2"
+    }
+  }
 }

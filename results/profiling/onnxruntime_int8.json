@@ -3,109 +3,109 @@
   "precision": "int8",
   "accuracy": 0.9397546569741027,
   "latency_ms": {
-    "p50": 0.46269999802461825,
-    "p90": 0.5601000011665747,
-    "p99": 1.0913000005530193,
-    "mean": 0.4997354998704395
+    "p50": 0.4507999983616173,
+    "p90": 0.4960999940522015,
+    "p99": 0.9569000103510916,
+    "mean": 0.4697525015217252
   },
-  "model_size_kb": 182.2919921875,
-  "peak_ram_kb": 0,
-  "peak_ram_source": "process rss high-water delta",
+  "model_size_kb": 182.283203125,
+  "peak_ram_kb": 6648,
+  "peak_ram_source": "rss for the runtime plus one inference",
   "ops": [
     {
       "name": "mfcc_QuantizeLinear",
       "op": "quantize",
-      "ms": 0.00922,
+      "ms": 0.01982000000000001,
       "bytes": 490
     },
     {
       "name": "Transpose",
       "op": "other",
-      "ms": 0.006220000000000004,
+      "ms": 0.011340000000000005,
       "bytes": 490
     },
     {
       "name": "conv1_token_1",
       "op": "conv2d",
-      "ms": 0.05384,
+      "ms": 0.12569999999999998,
       "bytes": 21500
     },
     {
       "name": "dw1_token_4",
       "op": "depthwise_conv",
-      "ms": 0.04721999999999999,
+      "ms": 0.09947999999999999,
       "bytes": 21500
     },
     {
       "name": "pw1_token_7",
       "op": "pointwise_conv",
-      "ms": 0.07311999999999998,
+      "ms": 0.17378,
       "bytes": 21500
     },
     {
       "name": "dw2_token_10",
       "op": "depthwise_conv",
-      "ms": 0.047199999999999985,
+      "ms": 0.09945999999999999,
       "bytes": 21500
     },
     {
       "name": "pw2_token_13",
       "op": "pointwise_conv",
-      "ms": 0.07601999999999996,
+      "ms": 0.16609999999999997,
       "bytes": 21500
     },
     {
       "name": "dw3_token_16",
       "op": "depthwise_conv",
-      "ms": 0.04899999999999999,
+      "ms": 0.09807999999999999,
       "bytes": 21500
     },
     {
       "name": "pw3_token_19",
       "op": "pointwise_conv",
-      "ms": 0.07797999999999997,
+      "ms": 0.15609999999999993,
       "bytes": 21500
     },
     {
       "name": "dw4_token_22",
       "op": "depthwise_conv",
-      "ms": 0.04742,
+      "ms": 0.09881999999999996,
       "bytes": 21500
     },
     {
       "name": "pw4_token_25",
       "op": "pointwise_conv",
-      "ms": 0.07533999999999998,
+      "ms": 0.16941999999999996,
       "bytes": 21500
     },
     {
       "name": "pool",
       "op": "pool",
-      "ms": 0.012639999999999995,
+      "ms": 0.026079999999999996,
       "bytes": 172
     },
     {
       "name": "Transpose_token_27",
       "op": "other",
-      "ms": 0.006800000000000006,
+      "ms": 0.011600000000000003,
       "bytes": 172
     },
     {
       "name": "flatten",
       "op": "other",
-      "ms": 0.005900000000000002,
+      "ms": 0.011119999999999994,
       "bytes": 172
     },
     {
       "name": "fc",
       "op": "dense",
-      "ms": 0.014520000000000009,
+      "ms": 0.03112000000000001,
       "bytes": 35
     },
     {
       "name": "logits_DequantizeLinear",
       "op": "quantize",
-      "ms": 0.008940000000000003,
+      "ms": 0.016460000000000006,
       "bytes": 140
     }
   ],
@@ -128,5 +128,21 @@
     "logits_DequantizeLinear"
   ],
   "nodes_before": 58,
-  "nodes_after": 16
+  "nodes_after": 16,
+  "provenance": {
+    "recorded": "2026-09-23T23:24:16+00:00",
+    "commit": "894349b",
+    "cpu": "Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz",
+    "cores": 8,
+    "os": "windows 11",
+    "python": "3.13.9",
+    "packages": {
+      "torch": "2.11.0",
+      "numpy": "2.2.6",
+      "onnx": "1.20.1",
+      "onnxruntime": "1.26.0",
+      "onnx2tf": "2.6.9",
+      "ai-edge-litert": "2.1.2"
+    }
+  }
 }

@@ -14,21 +14,20 @@ features, batch 1, single threaded, on an i5-8250U laptop.
 
 | Runtime | Accuracy (%) | Latency p50 (ms) | Model size (KB) | Peak RAM (KB) | Kernels run |
 |---------|-------------|-------------------|-----------------|---------------|-------------|
-| PyTorch (reference) | 93.98 | 4.72 | 549 | — | — |
-| ONNX Runtime FP32 | 93.98 | 1.63 | 568 | — | 13 |
-| ONNX Runtime FP32, optimizations off | 93.98 | 2.68 | 568 | — | 30 |
-| ONNX Runtime INT8 | 93.98 | 0.46 | 182 | — | 16 |
-| TFLite FP32 | 93.98 | 2.89 | 548 | 6088 (process) | — |
-| TFLite INT8, per-tensor | 93.77 | 122.54 | 147 | 4748 (process) | — |
-| C engine FP32 | 93.98 | 19.37 | 543 | 168 (planner) | 11 |
-| C engine FP32, unfused | 93.98 | 40.78 | 549 | 168 (planner) | 29 |
-| C engine INT8 | 94.00 | 29.08 | 148 | 42 (planner) | 11 |
+| PyTorch (reference) | 93.98 | 2.08 | 549 | 6432 (rss) | — |
+| ONNX Runtime FP32 | 93.98 | 0.47 | 568 | 7296 (rss) | 13 |
+| ONNX Runtime FP32, optimizations off | 93.98 | 1.20 | 568 | 6396 (rss) | 30 |
+| ONNX Runtime INT8 | 93.98 | 0.45 | 182 | 6648 (rss) | 16 |
+| TFLite FP32 | 93.98 | 2.89 | 548 | 4484 (rss) | 13 |
+| TFLite INT8, per-tensor | 93.77 | 123.16 | 147 | 4036 (rss) | 13 |
+| C engine FP32 | 93.98 | 17.23 | 543 | 168 (planner) | 11 |
+| C engine FP32, unfused | 93.98 | 17.61 | 549 | 168 (planner) | 29 |
+| C engine INT8 | 94.00 | 8.18 | 148 | 42 (planner) | 11 |
 | TensorRT FP16 / INT8 | not run | | | | GPU is Maxwell, TensorRT 11 needs Turing or newer |
 
-The C engine's peak RAM is its own planner arena, which is exact. TFLite's is the
-process high-water mark, interpreter included, so the two do not compare directly.
-ONNX Runtime exposes no equivalent figure. Kernel counts come from each runtime's
-own profiler, which is why PyTorch and TFLite have none here;
+The C engine's peak RAM is its own planner arena, which is exact. Every other row is
+the process high-water mark from loading the runtime to running one inference, so it
+carries the framework itself — which is the comparison, not a flaw in it.
 `results/tables/memory.md` says how each number was obtained.
 
 **On the Cortex-M4 target** (QEMU mps2-an386, instruction counts under `-icount`,
@@ -45,24 +44,31 @@ Flash 738.7 KB of 1024 KB, RAM 184.2 KB of 256 KB.
 
 ### What the numbers say
 
-**Fusion pays for itself, and it is free.** Folding BN into the convolution and
-clamping ReLU on the output write is worth 2.1x in the C engine (40.8 -> 19.4 ms)
-and 1.65x in ONNX Runtime (2.68 -> 1.63 ms). The unfused ONNX Runtime profile
-shows why: batch norm is 13.8% of the time and ReLU another 7.0%, and both
-disappear entirely. Logits move by 8.3e-6 (C) and 2.6e-6 (ORT), i.e. float
-rounding from a different summation order — the algebra is exact, as expected.
+**Fusion buys framework overhead, not arithmetic.** Folding BN into the convolution
+and clamping ReLU on the output write is worth 2.6x in ONNX Runtime (1.20 -> 0.47
+ms) but only 2.2% in the C engine (17.61 -> 17.23 ms). The two profiles say why.
+In ONNX Runtime's unfused graph batch norm is 12.9% of the time and ReLU another
+6.5%, and 30 kernels collapse to 13. In the C engine the same two operations cost
+0.3% and 0.1%: each is one pass over the activations, and the pointwise
+convolution they follow costs the same either way, 14.23 ms fused against 14.23 ms
+unfused. What fusion mostly removes is the per-node cost of being a runtime, which
+an engine with eleven hand-written kernels never paid. Logits move by 8.3e-6 (C)
+and 2.6e-6 (ORT), i.e. float rounding from a different summation order — the
+algebra is exact, as expected.
 
-**Whether INT8 is faster depends entirely on the machine.** On the Cortex-M4 with
-no FPU it is 8.3x cheaper than soft-float FP32, which is the whole reason
-quantization exists for microcontrollers. On x86, ONNX Runtime's INT8 kernels are
-3.5x faster than its FP32 — but the C engine's INT8 is *slower* than its own FP32
-(29.1 vs 19.4 ms), because straightforward integer code with a requantization per
-output loses to float that the compiler auto-vectorizes with AVX2. INT8 is a
-memory and energy win first; the speed depends on having kernels that exploit it.
+**Whether INT8 is faster depends on what the float path already does.** On the
+Cortex-M4 with no FPU it is 8.3x cheaper than soft-float FP32, 132.8 M instructions
+against 1098.1 M, which is the whole reason quantization exists for
+microcontrollers. On x86 it is worth 2.1x in the C engine (17.23 -> 8.18 ms), where
+the float baseline is a plain C loop with room left in it. In ONNX Runtime it buys
+nothing at all, 0.45 ms against 0.47: the float path is already vectorized, and the
+int8 graph pays for three extra kernels quantizing and dequantizing around it, 16
+against 13. INT8 is a memory and energy win first; the speed depends on how much
+room the float path left.
 
 **Per-tensor quantization is a trap.** TFLite is the one int8 model here with a
 single scale per weight tensor rather than one per output channel, and it runs at
-122 ms against 2.9 ms for the same graph in float — 0.13 GFLOP/s, the signature of
+123 ms against 2.9 ms for the same graph in float — 0.13 GFLOP/s, the signature of
 reference kernels. TFLite's optimized int8 convolutions are written for per-axis
 weights, so a per-tensor model falls off that path; disabling XNNPACK changes
 nothing, which rules the delegate out. It also costs accuracy: 93.77% against
@@ -86,13 +92,13 @@ tensor needs 758.6 KB, which does not fit in 256 KB of RAM. Liveness analysis pl
 greedy reuse brings that to 168 KB in two ping-pong buffers. Run it unfused and
 the naive figure is 2.27 MB, 13.5x the planned one.
 
-**Time concentrates in the pointwise convolutions**: 86% of the C engine's FP32
-time and 59% of ONNX Runtime's, which matches their share of the multiply-adds.
-The exception is the first layer, 11% of C engine time for 5% of the MACs — its
+**Time concentrates in the pointwise convolutions**: 82% of the C engine's FP32
+time and 65% of ONNX Runtime's, which matches their share of the multiply-adds.
+The exception is the first layer, 17% of C engine time for 5% of the MACs — its
 dot product runs over a single input channel, so nothing vectorizes.
 
-**Fixed-point MFCC tracks librosa to 0.017 dB on average** over real clips, with a
-1.85 dB worst case in near-silent frames, where the Q15 FFT's rounding noise is
+**Fixed-point MFCC tracks librosa to 0.012 dB on average** over real clips, with a
+1.20 dB worst case in near-silent frames, where the Q15 FFT's rounding noise is
 comparable to the signal itself.
 
 ![operator time share](results/plots/op_time_share.png)
@@ -102,9 +108,11 @@ comparable to the signal itself.
 More in `results/tables/`: the full per-operator breakdown, fusion decisions per
 runtime, memory plans and the MFCC error per coefficient.
 
-Latency is measured on a throttling laptop CPU: p50 over 200-300 runs, and the
-same binary can vary by up to 2x between runs when the machine is hot. The
-relative comparisons hold; the absolute milliseconds are specific to this machine.
+Latency is measured on a laptop CPU that alternates between two frequency states,
+where a single pass reports the same model twice as slow depending on when it ran.
+Each figure is the fastest of as many two-second rounds as fit in thirty, which
+brings repeat measurements of one model within a few tenths of a percent of each
+other. The absolute milliseconds are still specific to this machine.
 
 ## What this does
 
@@ -515,7 +523,7 @@ scored on the full test set, not a smoke run.
   classifies a real test clip correctly in both INT8 and soft-float FP32.
 - **TFLite** — converts and scores 93.98% in float, identical to PyTorch. Its
   int8 model is full-integer and correct, but per-tensor, with the cost above.
-- **Fixed-point MFCC** — 0.017 dB mean error against librosa on real recordings.
+- **Fixed-point MFCC** — 0.012 dB mean error against librosa on real recordings.
 
 Not run here: TensorRT, which needs a Turing or newer GPU. The path is written
 and wired into `make bench`, which picks up whichever runtimes a machine can

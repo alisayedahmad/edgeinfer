@@ -3,10 +3,10 @@
   "precision": "fp32",
   "accuracy": 0.9397546569741027,
   "latency_ms": {
-    "p50": 19.3657,
-    "p90": 20.4842,
-    "p99": 44.137,
-    "mean": 20.641077
+    "p50": 17.2256,
+    "p90": 17.6493,
+    "p99": 18.073,
+    "mean": 17.300228
   },
   "model_size_kb": 543.01171875,
   "peak_ram_kb": 167.96875,
@@ -15,67 +15,67 @@
     {
       "name": "conv1",
       "op": "conv2d",
-      "ms": 2.329355,
+      "ms": 2.911067,
       "bytes": 86000
     },
     {
       "name": "dw1",
       "op": "depthwise_conv",
-      "ms": 0.1567957,
+      "ms": 0.044435,
       "bytes": 86000
     },
     {
       "name": "pw1",
       "op": "pointwise_conv",
-      "ms": 4.423818,
+      "ms": 3.545221,
       "bytes": 86000
     },
     {
       "name": "dw2",
       "op": "depthwise_conv",
-      "ms": 0.162062,
+      "ms": 0.031091,
       "bytes": 86000
     },
     {
       "name": "pw2",
       "op": "pointwise_conv",
-      "ms": 4.4063513,
+      "ms": 3.561492,
       "bytes": 86000
     },
     {
       "name": "dw3",
       "op": "depthwise_conv",
-      "ms": 0.1564537,
+      "ms": 0.030075,
       "bytes": 86000
     },
     {
       "name": "pw3",
       "op": "pointwise_conv",
-      "ms": 4.426766,
+      "ms": 3.561552,
       "bytes": 86000
     },
     {
       "name": "dw4",
       "op": "depthwise_conv",
-      "ms": 0.16035429999999998,
+      "ms": 0.032165,
       "bytes": 86000
     },
     {
       "name": "pw4",
       "op": "pointwise_conv",
-      "ms": 4.3897772999999995,
+      "ms": 3.569301,
       "bytes": 86000
     },
     {
       "name": "pool",
       "op": "pool",
-      "ms": 0.0188263,
+      "ms": 0.005848,
       "bytes": 688
     },
     {
       "name": "fc",
       "op": "dense",
-      "ms": 0.008971,
+      "ms": 0.006916,
       "bytes": 140
     }
   ],
@@ -90,5 +90,21 @@
     "dw4 + dw4_bn + dw4_relu",
     "pw4 + pw4_bn + pw4_relu"
   ],
-  "arena_naive_kb": 758.58203125
+  "arena_naive_kb": 758.58203125,
+  "provenance": {
+    "recorded": "2026-09-23T23:28:31+00:00",
+    "commit": "894349b",
+    "cpu": "Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz",
+    "cores": 8,
+    "os": "windows 11",
+    "python": "3.13.9",
+    "packages": {
+      "torch": "2.11.0",
+      "numpy": "2.2.6",
+      "onnx": "1.20.1",
+      "onnxruntime": "1.26.0",
+      "onnx2tf": "2.6.9",
+      "ai-edge-litert": "2.1.2"
+    }
+  }
 }

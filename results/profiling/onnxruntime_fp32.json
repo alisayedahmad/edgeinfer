@@ -3,91 +3,91 @@
   "precision": "fp32",
   "accuracy": 0.9397546569741027,
   "latency_ms": {
-    "p50": 1.627000001462875,
-    "p90": 2.3977000018930994,
-    "p99": 4.392099999677157,
-    "mean": 1.7100994997599628
+    "p50": 0.46740000834688544,
+    "p90": 0.5604000180028379,
+    "p99": 0.8308000396937132,
+    "mean": 0.4929325036937371
   },
   "model_size_kb": 568.3447265625,
-  "peak_ram_kb": 0,
-  "peak_ram_source": "process rss high-water delta",
+  "peak_ram_kb": 7296,
+  "peak_ram_source": "rss for the runtime plus one inference",
   "ops": [
     {
       "name": "/features/conv1/conv1.2/Relu_output_0_nchwc",
       "op": "conv2d",
-      "ms": 0.15532,
+      "ms": 0.08546000000000002,
       "bytes": 88000
     },
     {
       "name": "/features/dw1/dw1.2/Relu_output_0_nchwc",
       "op": "depthwise_conv",
-      "ms": 0.13674,
+      "ms": 0.06594,
       "bytes": 88000
     },
     {
       "name": "/features/pw1/pw1.2/Relu_output_0_nchwc",
       "op": "pointwise_conv",
-      "ms": 0.26898,
+      "ms": 0.19692,
       "bytes": 88000
     },
     {
       "name": "/features/dw2/dw2.2/Relu_output_0_nchwc",
       "op": "depthwise_conv",
-      "ms": 0.10465999999999999,
+      "ms": 0.0643,
       "bytes": 88000
     },
     {
       "name": "/features/pw2/pw2.2/Relu_output_0_nchwc",
       "op": "pointwise_conv",
-      "ms": 0.2645799999999999,
+      "ms": 0.1970600000000001,
       "bytes": 88000
     },
     {
       "name": "/features/dw3/dw3.2/Relu_output_0_nchwc",
       "op": "depthwise_conv",
-      "ms": 0.10571999999999997,
+      "ms": 0.06378,
       "bytes": 88000
     },
     {
       "name": "/features/pw3/pw3.2/Relu_output_0_nchwc",
       "op": "pointwise_conv",
-      "ms": 0.27572000000000013,
+      "ms": 0.20493999999999998,
       "bytes": 88000
     },
     {
       "name": "/features/dw4/dw4.2/Relu_output_0_nchwc",
       "op": "depthwise_conv",
-      "ms": 0.11018000000000003,
+      "ms": 0.06904,
       "bytes": 88000
     },
     {
       "name": "/features/pw4/pw4.2/Relu_output_0_nchwc",
       "op": "pointwise_conv",
-      "ms": 0.27071999999999996,
+      "ms": 0.20964000000000002,
       "bytes": 88000
     },
     {
       "name": "ReorderOutput",
       "op": "other",
-      "ms": 0.04364,
+      "ms": 0.02935999999999999,
       "bytes": 86000
     },
     {
       "name": "pool",
       "op": "pool",
-      "ms": 0.04287999999999998,
+      "ms": 0.025000000000000005,
       "bytes": 688
     },
     {
       "name": "flatten",
       "op": "other",
-      "ms": 0.020520000000000004,
+      "ms": 0.011359999999999993,
       "bytes": 688
     },
     {
       "name": "fc",
       "op": "dense",
-      "ms": 0.03719999999999999,
+      "ms": 0.022860000000000005,
       "bytes": 140
     }
   ],
@@ -107,5 +107,21 @@
     "fc"
   ],
   "nodes_before": 30,
-  "nodes_after": 13
+  "nodes_after": 13,
+  "provenance": {
+    "recorded": "2026-09-23T23:22:46+00:00",
+    "commit": "894349b",
+    "cpu": "Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz",
+    "cores": 8,
+    "os": "windows 11",
+    "python": "3.13.9",
+    "packages": {
+      "torch": "2.11.0",
+      "numpy": "2.2.6",
+      "onnx": "1.20.1",
+      "onnxruntime": "1.26.0",
+      "onnx2tf": "2.6.9",
+      "ai-edge-litert": "2.1.2"
+    }
+  }
 }
