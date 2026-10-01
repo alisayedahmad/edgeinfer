@@ -27,6 +27,13 @@ void dequantize_tensor(const tensor_t *in, float *out)
 // int8 x int8 -> int32 dot products, then one requant per output. both
 // operands are walked along contiguous rows, which is why activations are
 // hwc and weights [out][in]
+// accumulator to output byte, on channel j's multiplier
+static inline int8_t requant_s8(int32_t acc, const layer_q_t *l, int j)
+{
+    int32_t v = requant(acc, l->mult[j], l->shift[j]) + l->out_zp;
+    return clamp_s8(v, l->act_min, l->act_max);
+}
+
 void qmatmul_s8(const int8_t *a, const layer_q_t *l, int8_t *out, int m, int n, int k)
 {
     uint32_t zp2 = ((uint32_t)l->in_zp << 16) | ((uint32_t)l->in_zp & 0xffffu);
@@ -44,7 +51,29 @@ void qmatmul_s8(const int8_t *a, const layer_q_t *l, int8_t *out, int m, int n, 
             arow[2 * b] = ssub16(sxtb16(av), zp2);
             arow[2 * b + 1] = ssub16(sxtb16_ror8(av), zp2);
         }
-        for (int j = 0; j < n; j++) {
+        int j = 0;
+        // two output columns per pass, so each unpacked activation pair is
+        // loaded once and feeds two accumulators
+        for (; j <= n - 2; j += 2) {
+            const int8_t *w0 = l->w + j * k, *w1 = w0 + k;
+            int32_t acc0 = l->bias[j], acc1 = l->bias[j + 1];
+            int t = 0;
+            for (int b = 0; b < blocks; b++, t += 4) {
+                uint32_t lo = arow[2 * b], hi = arow[2 * b + 1];
+                uint32_t v0 = read32(w0 + t), v1 = read32(w1 + t);
+                acc0 = smlad(lo, sxtb16(v0), acc0);
+                acc0 = smlad(hi, sxtb16_ror8(v0), acc0);
+                acc1 = smlad(lo, sxtb16(v1), acc1);
+                acc1 = smlad(hi, sxtb16_ror8(v1), acc1);
+            }
+            for (; t < k; t++) {
+                acc0 += (ap[t] - l->in_zp) * w0[t];
+                acc1 += (ap[t] - l->in_zp) * w1[t];
+            }
+            out[i * n + j] = requant_s8(acc0, l, j);
+            out[i * n + j + 1] = requant_s8(acc1, l, j + 1);
+        }
+        for (; j < n; j++) {
             const int8_t *wp = l->w + j * k;
             int32_t acc = l->bias[j];
             int t = 0;
@@ -55,8 +84,7 @@ void qmatmul_s8(const int8_t *a, const layer_q_t *l, int8_t *out, int m, int n, 
             }
             for (; t < k; t++)
                 acc += (ap[t] - l->in_zp) * wp[t];
-            int32_t v = requant(acc, l->mult[j], l->shift[j]) + l->out_zp;
-            out[i * n + j] = clamp_s8(v, l->act_min, l->act_max);
+            out[i * n + j] = requant_s8(acc, l, j);
         }
     }
 }
