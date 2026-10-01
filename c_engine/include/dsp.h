@@ -4,6 +4,20 @@
 #include <stdint.h>
 #include <string.h>
 
+// whether a kernel should hand-pack four taps into sxtb16 and smlad. that is
+// a win where those instructions exist. where they do not, the portable
+// versions below are correct but slower than the plain loop they replace,
+// because hand-packing is what stops a compiler vectorising it, so kernels
+// with a plain alternative keep it. defining EI_PACKED forces the packed
+// path on the host, which is how the operator tests reach it
+#ifndef EI_PACKED
+#if defined(__ARM_FEATURE_DSP) && __ARM_FEATURE_DSP
+#define EI_PACKED 1
+#else
+#define EI_PACKED 0
+#endif
+#endif
+
 // the cortex-m4 dsp instructions the int8 kernels run on, with portable
 // versions so the same kernel builds and is tested on the host. sxtb16
 // unpacks two of the four bytes into sign-extended halfwords, ssub16 takes

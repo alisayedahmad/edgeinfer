@@ -34,6 +34,8 @@ static inline int8_t requant_s8(int32_t acc, const layer_q_t *l, int j)
     return clamp_s8(v, l->act_min, l->act_max);
 }
 
+#if EI_PACKED
+
 void qmatmul_s8(const int8_t *a, const layer_q_t *l, int8_t *out, int m, int n, int k)
 {
     uint32_t zp2 = ((uint32_t)l->in_zp << 16) | ((uint32_t)l->in_zp & 0xffffu);
@@ -88,3 +90,21 @@ void qmatmul_s8(const int8_t *a, const layer_q_t *l, int8_t *out, int m, int n, 
         }
     }
 }
+
+#else
+
+void qmatmul_s8(const int8_t *a, const layer_q_t *l, int8_t *out, int m, int n, int k)
+{
+    for (int i = 0; i < m; i++) {
+        const int8_t *ap = a + i * k;
+        for (int j = 0; j < n; j++) {
+            const int8_t *wp = l->w + j * k;
+            int32_t acc = l->bias[j];
+            for (int t = 0; t < k; t++)
+                acc += (ap[t] - l->in_zp) * wp[t];
+            out[i * n + j] = requant_s8(acc, l, j);
+        }
+    }
+}
+
+#endif

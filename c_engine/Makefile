@@ -30,8 +30,14 @@ $(BUILD)/host/edgeinfer: $(SRC) src/main.c $(HEADERS) $(WEIGHTS) weights/mfcc_ta
 $(BUILD)/host/test_ops: test/test_ops.c $(LIB_SRC) $(HEADERS) test/vectors.h weights/mfcc_tables.h | $(BUILD)/host
 	$(CC) $(CFLAGS) -Itest -o $@ test/test_ops.c $(LIB_SRC) -lm
 
-test: $(BUILD)/host/test_ops
-	./$<
+# the packed kernels only build themselves on the cortex-m4, so the host
+# forces them on in a second binary to keep them under the same tests
+$(BUILD)/host/test_ops_packed: test/test_ops.c $(LIB_SRC) $(HEADERS) test/vectors.h weights/mfcc_tables.h | $(BUILD)/host
+	$(CC) $(CFLAGS) -DEI_PACKED=1 -Itest -o $@ test/test_ops.c $(LIB_SRC) -lm
+
+test: $(BUILD)/host/test_ops $(BUILD)/host/test_ops_packed
+	./$(BUILD)/host/test_ops
+	./$(BUILD)/host/test_ops_packed
 
 weights/mfcc_tables.h:
 	cd .. && $(PYTHON) -m train.export --targets mfcc
