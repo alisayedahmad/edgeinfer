@@ -1,3 +1,4 @@
+#include "dsp.h"
 #include "ops.h"
 
 // direct convolution, no im2col. for each output pixel and channel, walk
@@ -31,12 +32,54 @@ void conv2d_f32(const tensor_t *in, tensor_t *out, const float *w, const float *
             }
 }
 
+// first layer: one input channel, so a kernel row is contiguous on both sides.
+// the padding is clipped once per output pixel instead of tested per tap, and
+// the row pointers walk forward, which is where this layer's cost actually was
+static void conv2d_s8_c1(const tensor_t *in, tensor_t *out, const layer_q_t *l, const conv_params_t *p)
+{
+    const int8_t *x = in->data;
+    int8_t *y = out->data;
+    uint32_t zp2 = ((uint32_t)l->in_zp << 16) | ((uint32_t)l->in_zp & 0xffffu);
+    int row = p->kh * p->kw;
+    for (int oy = 0; oy < out->h; oy++) {
+        int top = oy * p->sh - p->ph;
+        int ky0 = top < 0 ? -top : 0;
+        int ky1 = top + p->kh > in->h ? in->h - top : p->kh;
+        for (int ox = 0; ox < out->w; ox++) {
+            int ix0 = ox * p->sw - p->pw;
+            int kx0 = ix0 < 0 ? -ix0 : 0;
+            int kx1 = ix0 + p->kw > in->w ? in->w - ix0 : p->kw;
+            for (int co = 0; co < out->c; co++) {
+                int32_t acc = l->bias[co];
+                const int8_t *xp = x + (top + ky0) * in->w + ix0;
+                const int8_t *wp = l->w + co * row + ky0 * p->kw;
+                for (int ky = ky0; ky < ky1; ky++, xp += in->w, wp += p->kw) {
+                    int kx = kx0;
+                    for (; kx <= kx1 - 4; kx += 4) {
+                        uint32_t av = read32(xp + kx), wv = read32(wp + kx);
+                        acc = smlad(ssub16(sxtb16(av), zp2), sxtb16(wv), acc);
+                        acc = smlad(ssub16(sxtb16_ror8(av), zp2), sxtb16_ror8(wv), acc);
+                    }
+                    for (; kx < kx1; kx++)
+                        acc += (xp[kx] - l->in_zp) * wp[kx];
+                }
+                int32_t v = requant(acc, l->mult[co], l->shift[co]) + l->out_zp;
+                y[(oy * out->w + ox) * out->c + co] = clamp_s8(v, l->act_min, l->act_max);
+            }
+        }
+    }
+}
+
 // same loop in int8. 1x1 stride-1 convs are a matmul over pixels, so they
 // go straight to qmatmul_s8
 void conv2d_s8(const tensor_t *in, tensor_t *out, const layer_q_t *l, const conv_params_t *p)
 {
     if (p->kh == 1 && p->kw == 1 && p->sh == 1 && p->sw == 1 && p->ph == 0 && p->pw == 0) {
         qmatmul_s8(in->data, l, out->data, in->h * in->w, out->c, in->c);
+        return;
+    }
+    if (in->c == 1) {
+        conv2d_s8_c1(in, out, l, p);
         return;
     }
     const int8_t *x = in->data;
