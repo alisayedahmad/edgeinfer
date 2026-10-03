@@ -93,17 +93,19 @@ def run(precision, runs):
     interp.invoke()
     rss = profile.rss_kb() - before
 
-    logits = predict(interp, x)
-
     def once():
         interp.set_tensor(inp["index"], sample)
         interp.invoke()
 
+    # latency before the accuracy sweep: the sweep is minutes of load and
+    # leaves the cpu in its slow state, which hits the slowest model hardest
+    latency = profile.latency(once, runs)
+    logits = predict(interp, x)
     ops, peak = benchmark(path, runs)
     return {
         "runtime": "tflite", "precision": precision,
         "accuracy": profile.accuracy(logits, y),
-        "latency_ms": profile.latency(once, runs),
+        "latency_ms": latency,
         "model_size_kb": path.stat().st_size / 1024,
         "peak_ram_kb": peak if peak else rss,
         "peak_ram_source": "benchmark_model peak footprint" if peak else "rss for the runtime plus one inference",

@@ -28,21 +28,24 @@ def run(runs, batch):
         model(sample)
     peak = profile.rss_kb() - before
 
+    def once():
+        with torch.inference_mode():
+            model(sample)
+
+    # latency before the accuracy sweep: the sweep is minutes of load and
+    # leaves the cpu in its slow state, which hits the slowest model hardest
+    latency = profile.latency(once, runs)
     logits = []
     with torch.inference_mode():
         for start in range(0, len(x), batch):
             logits.append(model(torch.from_numpy(x[start:start + batch])).numpy())
     logits = [row for chunk in logits for row in chunk]
 
-    def once():
-        with torch.inference_mode():
-            model(sample)
-
     weights = sum(p.numel() * p.element_size() for p in model.parameters())
     return {
         "runtime": "pytorch", "precision": "fp32",
         "accuracy": profile.accuracy(logits, y),
-        "latency_ms": profile.latency(once, runs),
+        "latency_ms": latency,
         "model_size_kb": weights / 1024,
         "peak_ram_kb": peak, "peak_ram_source": "rss for the runtime plus one inference",
         "ops": [], "fused": [],

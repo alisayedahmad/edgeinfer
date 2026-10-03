@@ -25,13 +25,14 @@ def cli(*args):
 
 def run(precision, runs):
     x, y = profile.eval_set()
+    # the same fastest-of-rounds rule the python runners use, see profile.fastest
+    # and before the accuracy sweep: the sweep is minutes of load and
+    # leaves the cpu in its slow state, which hits the slowest model hardest
+    bench = profile.fastest(lambda: json.loads(cli("bench", precision, runs)),
+                            lambda b: b["latency_ns"]["p50"])
     logits_path = profile.ARTIFACTS / f"c_{precision}.f32"
     cli("eval", precision, FEATURES, len(x), logits_path)
     logits = np.fromfile(logits_path, np.float32).reshape(len(x), -1)
-
-    # the same fastest-of-rounds rule the python runners use, see profile.fastest
-    bench = profile.fastest(lambda: json.loads(cli("bench", precision, runs)),
-                            lambda b: b["latency_ns"]["p50"])
     plan = json.loads(cli("plan", precision))
     layers = [t["name"] for t in plan["tensors"] if t["name"] not in ("input", "pool", "fc")]
     return {

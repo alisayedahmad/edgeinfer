@@ -69,13 +69,16 @@ def run(precision, runs, batch):
     sess.run(None, {name: x[:1]})
     peak = profile.rss_kb() - before
 
+    # latency before the accuracy sweep: the sweep is minutes of load and
+    # leaves the cpu in its slow state, which hits the slowest model hardest
+    latency = profile.latency(lambda: sess.run(None, {name: x[:1]}), runs)
     logits = np.concatenate([sess.run(None, {name: x[i:i + batch]})[0] for i in range(0, len(x), batch)])
 
     graph = onnx.load(optimized).graph
     return {
         "runtime": "onnxruntime", "precision": precision,
         "accuracy": profile.accuracy(logits, y),
-        "latency_ms": profile.latency(lambda: sess.run(None, {name: x[:1]}), runs),
+        "latency_ms": latency,
         "model_size_kb": path.stat().st_size / 1024,
         "peak_ram_kb": peak, "peak_ram_source": "rss for the runtime plus one inference",
         "ops": profile_ops(path, LEVELS[precision], x),
