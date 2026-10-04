@@ -3,10 +3,10 @@
   "precision": "int8",
   "accuracy": 0.9400272603362109,
   "latency_ms": {
-    "p50": 8.1749,
-    "p90": 8.4085,
-    "p99": 8.7246,
-    "mean": 8.209291
+    "p50": 6.0589,
+    "p90": 6.1147,
+    "p99": 6.2168,
+    "mean": 6.068305
   },
   "model_size_kb": 148.1201171875,
   "peak_ram_kb": 41.9921875,
@@ -15,67 +15,67 @@
     {
       "name": "conv1",
       "op": "conv2d",
-      "ms": 3.141981,
+      "ms": 1.132212,
       "bytes": 21500
     },
     {
       "name": "dw1",
       "op": "depthwise_conv",
-      "ms": 0.236771,
+      "ms": 0.223752,
       "bytes": 21500
     },
     {
       "name": "pw1",
       "op": "pointwise_conv",
-      "ms": 1.048851,
+      "ms": 1.031572,
       "bytes": 21500
     },
     {
       "name": "dw2",
       "op": "depthwise_conv",
-      "ms": 0.234974,
+      "ms": 0.220108,
       "bytes": 21500
     },
     {
       "name": "pw2",
       "op": "pointwise_conv",
-      "ms": 1.05849,
+      "ms": 1.042052,
       "bytes": 21500
     },
     {
       "name": "dw3",
       "op": "depthwise_conv",
-      "ms": 0.23487,
+      "ms": 0.21944,
       "bytes": 21500
     },
     {
       "name": "pw3",
       "op": "pointwise_conv",
-      "ms": 1.029462,
+      "ms": 1.001691,
       "bytes": 21500
     },
     {
       "name": "dw4",
       "op": "depthwise_conv",
-      "ms": 0.20454,
+      "ms": 0.192779,
       "bytes": 21500
     },
     {
       "name": "pw4",
       "op": "pointwise_conv",
-      "ms": 1.003575,
+      "ms": 0.990722,
       "bytes": 21500
     },
     {
       "name": "pool",
       "op": "pool",
-      "ms": 0.012668,
+      "ms": 0.011346,
       "bytes": 172
     },
     {
       "name": "fc",
       "op": "dense",
-      "ms": 0.002287,
+      "ms": 0.001827,
       "bytes": 36
     }
   ],
@@ -92,8 +92,8 @@
   ],
   "arena_naive_kb": 189.6484375,
   "provenance": {
-    "recorded": "2026-09-23T23:35:37+00:00",
-    "commit": "894349b",
+    "recorded": "2026-10-03T19:18:34+00:00",
+    "commit": "3d952b3",
     "cpu": "Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz",
     "cores": 8,
     "os": "windows 11",

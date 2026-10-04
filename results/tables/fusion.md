@@ -25,10 +25,10 @@
 
 | configuration                      | p50 ms | peak ram kb | kernels |
 |------------------------------------|--------|-------------|---------|
-| c engine, unfused (conv, bn, relu) | 17.613 | 168         | 29      |
-| c engine, manual fusion            | 17.226 | 168         | 11      |
-| onnx runtime, optimizations off    | 1.202  | 6396        | 30      |
-| onnx runtime, optimizations on     | 0.467  | 7296        | 13      |
+| c engine, unfused (conv, bn, relu) | 17.349 | 168         | 29      |
+| c engine, manual fusion            | 16.921 | 168         | 11      |
+| onnx runtime, optimizations off    | 1.206  | 6500        | 30      |
+| onnx runtime, optimizations on     | 0.468  | 7328        | 13      |
 
 | numerical difference (max abs logit) | value     |
 |--------------------------------------|-----------|

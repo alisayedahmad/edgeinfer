@@ -13,9 +13,9 @@ arena sizes from the c engine planner.
 | c_engine fp32-unfused  | 168         | planner arena                          |
 | c_engine fp32          | 168         | planner arena                          |
 | c_engine int8          | 42          | planner arena                          |
-| onnxruntime fp32-unopt | 6396        | rss for the runtime plus one inference |
-| onnxruntime fp32       | 7296        | rss for the runtime plus one inference |
-| onnxruntime int8       | 6648        | rss for the runtime plus one inference |
-| pytorch fp32           | 6432        | rss for the runtime plus one inference |
-| tflite fp32            | 4484        | rss for the runtime plus one inference |
-| tflite int8            | 4036        | rss for the runtime plus one inference |
+| onnxruntime fp32-unopt | 6500        | rss for the runtime plus one inference |
+| onnxruntime fp32       | 7328        | rss for the runtime plus one inference |
+| onnxruntime int8       | 6344        | rss for the runtime plus one inference |
+| pytorch fp32           | 6504        | rss for the runtime plus one inference |
+| tflite fp32            | 4660        | rss for the runtime plus one inference |
+| tflite int8            | 4176        | rss for the runtime plus one inference |

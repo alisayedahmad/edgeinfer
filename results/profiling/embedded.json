@@ -1,7 +1,7 @@
 {
   "sections": {
     ".isr_vector": 64,
-    ".text": 756364,
+    ".text": 757852,
     ".data": 0,
     ".bss": 180424,
     ".comment": 51,
@@ -14,7 +14,7 @@
     ".debug_loc": 4800,
     ".debug_ranges": 232
   },
-  "flash_bytes": 756428,
+  "flash_bytes": 757916,
   "flash_limit": 1048576,
   "ram_bytes": 188616,
   "ram_limit": 262144,
@@ -46,17 +46,17 @@
         {
           "name": "conv1",
           "op": "conv2d",
-          "instructions": 28107760
+          "instructions": 8496040
         },
         {
           "name": "dw1",
           "op": "depthwise_conv",
-          "instructions": 2621280
+          "instructions": 2621320
         },
         {
           "name": "pw1",
           "op": "pointwise_conv",
-          "instructions": 23512120
+          "instructions": 7966000
         },
         {
           "name": "dw2",
@@ -66,7 +66,7 @@
         {
           "name": "pw2",
           "op": "pointwise_conv",
-          "instructions": 23511800
+          "instructions": 7965680
         },
         {
           "name": "dw3",
@@ -76,7 +76,7 @@
         {
           "name": "pw3",
           "op": "pointwise_conv",
-          "instructions": 23506760
+          "instructions": 7960680
         },
         {
           "name": "dw4",
@@ -86,7 +86,7 @@
         {
           "name": "pw4",
           "op": "pointwise_conv",
-          "instructions": 23506640
+          "instructions": 7960560
         },
         {
           "name": "pool",
@@ -96,11 +96,11 @@
         {
           "name": "fc",
           "op": "dense",
-          "instructions": 38480
+          "instructions": 13680
         }
       ],
       "mfcc_instructions": 10241640,
-      "infer_instructions": 132801040
+      "infer_instructions": 50980160
     },
     {
       "mode": "fp32",
@@ -112,7 +112,7 @@
         {
           "name": "conv1",
           "op": "conv2d",
-          "instructions": 92570520
+          "instructions": 92570480
         },
         {
           "name": "dw1",
@@ -122,12 +122,12 @@
         {
           "name": "pw1",
           "op": "pointwise_conv",
-          "instructions": 257586600
+          "instructions": 257586640
         },
         {
           "name": "dw2",
           "op": "depthwise_conv",
-          "instructions": 11927440
+          "instructions": 11927400
         },
         {
           "name": "pw2",
@@ -147,12 +147,12 @@
         {
           "name": "dw4",
           "op": "depthwise_conv",
-          "instructions": 10032920
+          "instructions": 10032960
         },
         {
           "name": "pw4",
           "op": "pointwise_conv",
-          "instructions": 218621040
+          "instructions": 218621000
         },
         {
           "name": "pool",
@@ -162,10 +162,10 @@
         {
           "name": "fc",
           "op": "dense",
-          "instructions": 550840
+          "instructions": 550800
         }
       ],
-      "mfcc_instructions": 10241640,
+      "mfcc_instructions": 10241600,
       "infer_instructions": 1098074960
     }
   ]

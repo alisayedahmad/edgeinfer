@@ -3,20 +3,20 @@
   "precision": "int8",
   "accuracy": 0.937664697864607,
   "latency_ms": {
-    "p50": 123.1633999850601,
-    "p90": 124.80130000039935,
-    "p99": 124.88100002519786,
-    "mean": 123.40569499356207
+    "p50": 123.46509999770205,
+    "p90": 126.26980000641197,
+    "p99": 127.43429999682121,
+    "mean": 123.74403500143671
   },
   "model_size_kb": 146.7734375,
-  "peak_ram_kb": 4036,
+  "peak_ram_kb": 4176,
   "peak_ram_source": "rss for the runtime plus one inference",
   "ops": [],
   "fused": [],
   "nodes_after": 13,
   "provenance": {
-    "recorded": "2026-09-24T00:11:28+00:00",
-    "commit": "894349b",
+    "recorded": "2026-10-03T19:55:04+00:00",
+    "commit": "3d952b3",
     "cpu": "Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz",
     "cores": 8,
     "os": "windows 11",

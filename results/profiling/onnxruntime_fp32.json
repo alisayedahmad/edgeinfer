@@ -3,91 +3,91 @@
   "precision": "fp32",
   "accuracy": 0.9397546569741027,
   "latency_ms": {
-    "p50": 0.46740000834688544,
-    "p90": 0.5604000180028379,
-    "p99": 0.8308000396937132,
-    "mean": 0.4929325036937371
+    "p50": 0.46799999836366624,
+    "p90": 0.5356999899959192,
+    "p99": 0.8366999973077327,
+    "mean": 0.48914349936239887
   },
   "model_size_kb": 568.3447265625,
-  "peak_ram_kb": 7296,
+  "peak_ram_kb": 7328,
   "peak_ram_source": "rss for the runtime plus one inference",
   "ops": [
     {
       "name": "/features/conv1/conv1.2/Relu_output_0_nchwc",
       "op": "conv2d",
-      "ms": 0.08546000000000002,
+      "ms": 0.03743999999999998,
       "bytes": 88000
     },
     {
       "name": "/features/dw1/dw1.2/Relu_output_0_nchwc",
       "op": "depthwise_conv",
-      "ms": 0.06594,
+      "ms": 0.029140000000000027,
       "bytes": 88000
     },
     {
       "name": "/features/pw1/pw1.2/Relu_output_0_nchwc",
       "op": "pointwise_conv",
-      "ms": 0.19692,
+      "ms": 0.08758000000000003,
       "bytes": 88000
     },
     {
       "name": "/features/dw2/dw2.2/Relu_output_0_nchwc",
       "op": "depthwise_conv",
-      "ms": 0.0643,
+      "ms": 0.02762000000000001,
       "bytes": 88000
     },
     {
       "name": "/features/pw2/pw2.2/Relu_output_0_nchwc",
       "op": "pointwise_conv",
-      "ms": 0.1970600000000001,
+      "ms": 0.09064000000000001,
       "bytes": 88000
     },
     {
       "name": "/features/dw3/dw3.2/Relu_output_0_nchwc",
       "op": "depthwise_conv",
-      "ms": 0.06378,
+      "ms": 0.02874000000000002,
       "bytes": 88000
     },
     {
       "name": "/features/pw3/pw3.2/Relu_output_0_nchwc",
       "op": "pointwise_conv",
-      "ms": 0.20493999999999998,
+      "ms": 0.08616000000000004,
       "bytes": 88000
     },
     {
       "name": "/features/dw4/dw4.2/Relu_output_0_nchwc",
       "op": "depthwise_conv",
-      "ms": 0.06904,
+      "ms": 0.02802000000000001,
       "bytes": 88000
     },
     {
       "name": "/features/pw4/pw4.2/Relu_output_0_nchwc",
       "op": "pointwise_conv",
-      "ms": 0.20964000000000002,
+      "ms": 0.0874,
       "bytes": 88000
     },
     {
       "name": "ReorderOutput",
       "op": "other",
-      "ms": 0.02935999999999999,
+      "ms": 0.010820000000000001,
       "bytes": 86000
     },
     {
       "name": "pool",
       "op": "pool",
-      "ms": 0.025000000000000005,
+      "ms": 0.010099999999999998,
       "bytes": 688
     },
     {
       "name": "flatten",
       "op": "other",
-      "ms": 0.011359999999999993,
+      "ms": 0.004140000000000004,
       "bytes": 688
     },
     {
       "name": "fc",
       "op": "dense",
-      "ms": 0.022860000000000005,
+      "ms": 0.007680000000000004,
       "bytes": 140
     }
   ],
@@ -109,8 +109,8 @@
   "nodes_before": 30,
   "nodes_after": 13,
   "provenance": {
-    "recorded": "2026-09-23T23:22:46+00:00",
-    "commit": "894349b",
+    "recorded": "2026-10-03T19:05:37+00:00",
+    "commit": "3d952b3",
     "cpu": "Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz",
     "cores": 8,
     "os": "windows 11",
