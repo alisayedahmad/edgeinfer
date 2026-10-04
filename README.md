@@ -14,15 +14,15 @@ features, batch 1, single threaded, on an i5-8250U laptop.
 
 | Runtime | Accuracy (%) | Latency p50 (ms) | Model size (KB) | Peak RAM (KB) | Kernels run |
 |---------|-------------|-------------------|-----------------|---------------|-------------|
-| PyTorch (reference) | 93.98 | 2.08 | 549 | 6432 (rss) | — |
-| ONNX Runtime FP32 | 93.98 | 0.47 | 568 | 7296 (rss) | 13 |
-| ONNX Runtime FP32, optimizations off | 93.98 | 1.20 | 568 | 6396 (rss) | 30 |
-| ONNX Runtime INT8 | 93.98 | 0.45 | 182 | 6648 (rss) | 16 |
-| TFLite FP32 | 93.98 | 2.89 | 548 | 4484 (rss) | 13 |
-| TFLite INT8, per-tensor | 93.77 | 123.16 | 147 | 4036 (rss) | 13 |
-| C engine FP32 | 93.98 | 17.23 | 543 | 168 (planner) | 11 |
-| C engine FP32, unfused | 93.98 | 17.61 | 549 | 168 (planner) | 29 |
-| C engine INT8 | 94.00 | 8.18 | 148 | 42 (planner) | 11 |
+| PyTorch (reference) | 93.98 | 1.96 | 549 | 6504 (rss) | — |
+| ONNX Runtime FP32 | 93.98 | 0.47 | 568 | 7328 (rss) | 13 |
+| ONNX Runtime FP32, optimizations off | 93.98 | 1.21 | 568 | 6500 (rss) | 30 |
+| ONNX Runtime INT8 | 93.98 | 0.45 | 182 | 6344 (rss) | 16 |
+| TFLite FP32 | 93.98 | 2.86 | 548 | 4660 (rss) | 13 |
+| TFLite INT8, per-tensor | 93.77 | 123.47 | 147 | 4176 (rss) | 13 |
+| C engine FP32 | 93.98 | 16.92 | 543 | 168 (planner) | 11 |
+| C engine FP32, unfused | 93.98 | 17.35 | 549 | 168 (planner) | 29 |
+| C engine INT8 | 94.00 | 6.06 | 148 | 42 (planner) | 11 |
 | TensorRT FP16 / INT8 | not run | | | | GPU is Maxwell, TensorRT 11 needs Turing or newer |
 
 The C engine's peak RAM is its own planner arena, which is exact. Every other row is
@@ -35,36 +35,48 @@ both weight sets compiled in):
 
 | | INT8 | FP32, soft float |
 |---|---|---|
-| Inference | 132.8 M instructions | 1098.1 M instructions |
+| Inference | 51.0 M instructions | 1098.1 M instructions |
 | Fixed-point MFCC | 10.2 M instructions | 10.2 M instructions |
 | Arena, planner vs naive | 42.0 vs 189.6 KB | 168.0 vs 758.6 KB |
 | Prediction on a real test clip | correct | correct |
 
-Flash 738.7 KB of 1024 KB, RAM 184.2 KB of 256 KB.
+Flash 740.2 KB of 1024 KB, RAM 184.2 KB of 256 KB.
 
 ### What the numbers say
 
 **Fusion buys framework overhead, not arithmetic.** Folding BN into the convolution
 and clamping ReLU on the output write is worth 2.6x in ONNX Runtime (1.20 -> 0.47
-ms) but only 2.2% in the C engine (17.61 -> 17.23 ms). The two profiles say why.
-In ONNX Runtime's unfused graph batch norm is 12.9% of the time and ReLU another
-6.5%, and 30 kernels collapse to 13. In the C engine the same two operations cost
-0.3% and 0.1%: each is one pass over the activations, and the pointwise
-convolution they follow costs the same either way, 14.23 ms fused against 14.23 ms
-unfused. What fusion mostly removes is the per-node cost of being a runtime, which
+ms) but only 2.5% in the C engine (17.35 -> 16.92 ms). The two profiles say why.
+In ONNX Runtime's unfused graph batch norm is 12.0% of the time and ReLU another
+6.2%, and 30 kernels collapse to 13. In the C engine the same two operations cost
+0.2% and 0.1%: each is one pass over the activations, and the pointwise
+convolution they follow costs 13.99 ms either way, fused or not. What fusion mostly removes is the per-node cost of being a runtime, which
 an engine with eleven hand-written kernels never paid. Logits move by 8.3e-6 (C)
 and 2.6e-6 (ORT), i.e. float rounding from a different summation order — the
 algebra is exact, as expected.
 
 **Whether INT8 is faster depends on what the float path already does.** On the
-Cortex-M4 with no FPU it is 8.3x cheaper than soft-float FP32, 132.8 M instructions
+Cortex-M4 with no FPU it is 21.5x cheaper than soft-float FP32, 51.0 M instructions
 against 1098.1 M, which is the whole reason quantization exists for
-microcontrollers. On x86 it is worth 2.1x in the C engine (17.23 -> 8.18 ms), where
-the float baseline is a plain C loop with room left in it. In ONNX Runtime it buys
-nothing at all, 0.45 ms against 0.47: the float path is already vectorized, and the
-int8 graph pays for three extra kernels quantizing and dequantizing around it, 16
-against 13. INT8 is a memory and energy win first; the speed depends on how much
-room the float path left.
+microcontrollers, and most of that gap is the hand-written int8 kernels below.
+On x86 it is worth 2.8x in the C engine (16.92 -> 6.06 ms), where the float
+baseline is a plain C loop with room left in it. In ONNX Runtime it buys nothing at
+all, 0.45 ms against 0.47: the float path is already vectorized, and the int8 graph
+pays for three extra kernels quantizing and dequantizing around it, 16 against 13.
+INT8 is a memory and energy win first; the speed depends on how much room the float
+path left.
+
+**Writing the kernels by hand pays on the microcontroller and costs on the laptop.**
+The Cortex-M4 has instructions that unpack four bytes into signed halfwords and
+multiply-accumulate two pairs at once. Using them, with each activation row
+unpacked once per matmul instead of once per output channel and two output columns
+sharing every unpacked pair, takes the int8 inference from 132.8 M instructions to
+51.0 M, bit for bit identical. The pointwise convolutions go from 6.4 to 2.15
+instructions per multiply-accumulate. The same code on x86 is 4x *slower* than the
+plain loop it replaced, because packing bytes by hand is exactly what stops the
+compiler vectorizing. So it compiles only where those instructions exist. That is
+the case for a hand-written engine in one line: it is worth it where no runtime and
+no auto-vectorizer will do the work for you, and nowhere else.
 
 **Per-tensor quantization is a trap.** TFLite is the one int8 model here with a
 single scale per weight tensor rather than one per output channel, and it runs at
@@ -241,6 +253,7 @@ edgeinfer/
 │   │   ├── tensor.h           # tensor struct, memory layout
 │   │   ├── ops.h              # operator declarations
 │   │   ├── quantize.h         # int8 quantization utils
+│   │   ├── dsp.h              # cortex-m4 packed macs, portable fallbacks
 │   │   └── memory.h           # buffer allocator
 │   ├── src/
 │   │   ├── ops/
@@ -339,11 +352,15 @@ memory planners trade peak RAM for allocation complexity.
 ### Phase 6 — embedded
 
 Cross-compiled for Cortex-M4, wrote the fixed-point MFCC, ran it under QEMU:
-738.7 KB of flash, 184.2 KB of RAM, and the right answer on a real clip.
+740.2 KB of flash, 184.2 KB of RAM, and the right answer on a real clip. Then
+rewrote the int8 kernels on the processor's own packed multiply-accumulates,
+which took the inference from 132.8 M instructions to 51.0 M without changing
+an output byte.
 
 **What you learn**: cross-compilation toolchain, fixed-point arithmetic (Q15
-format, overflow handling), what "no FPU" means in practice (8.3x), linker
-scripts and memory regions.
+format, overflow handling), what "no FPU" means in practice (21.5x), writing
+to an instruction set by hand and measuring it where the count is exact,
+linker scripts and memory regions.
 
 ### Phase 7 — analysis and writeup
 
